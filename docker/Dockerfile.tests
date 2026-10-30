@@ -2,12 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /workspace/backend
 
-# Preserve the repository layout: backend tests also import the sibling cloud
-# service. Test tooling belongs in this image, not the application runtime.
+# Test tooling belongs in this image, not the application runtime.
 COPY backend/requirements.txt backend/requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY backend /workspace/backend
-COPY cloud /workspace/cloud
 
 CMD ["python", "-m", "pytest", "-q"]
