@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PantryOS Setup</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; align-items: center; justify-content: center; min-height: 100vh;
+    background: light-dark(#f6f8f6, #131613); color: light-dark(#1c211c, #e8ece8);
+  }
+  .card { width: min(600px, 92vw); padding: 2.2rem; border-radius: 14px;
+    background: light-dark(#ffffff, #1d221d); box-shadow: 0 8px 30px rgb(0 0 0 / 12%); }
+  h1 { margin: 0 0 .4rem; font-size: 1.5rem; }
+  p { line-height: 1.5; }
+  .muted { color: light-dark(#5a635a, #9aa59a); font-size: .92rem; }
+  button {
+    font: inherit; padding: .6rem 1.4rem; border-radius: 8px; border: 0; cursor: pointer;
+    background: #2e7d32; color: #fff;
+  }
+  button.secondary { background: transparent; color: inherit; border: 1px solid light-dark(#c8d0c8, #3a423a); }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: .8rem; margin-top: 1.4rem; justify-content: flex-end; }
+  .hidden { display: none; }
+  .spinner { width: 26px; height: 26px; border: 3px solid #2e7d3244; border-top-color: #2e7d32;
+    border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { color: #c62828; white-space: pre-wrap; }
+  code { background: light-dark(#eef2ee, #262c26); padding: .15rem .45rem; border-radius: 5px; }
+  textarea { width: 100%; height: 180px; font-family: ui-monospace, monospace; font-size: .8rem; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Screen 1: welcome -->
+  <section id="screen-welcome">
+    <h1>Welcome to PantryOS</h1>
+    <p>Your household's pantry, shopping, and meal planning — running entirely on this computer.</p>
+    <p class="muted">Setup installs everything PantryOS needs and opens it in your browser.
+      Your pantry data never leaves your home network.</p>
+    <p id="docker-note" class="muted hidden"></p>
+    <div class="row">
+      <button id="btn-start">Set up PantryOS</button>
+    </div>
+  </section>
+
+  <!-- Screen 2: progress -->
+  <section id="screen-progress" class="hidden">
+    <h1>Getting things ready…</h1>
+    <p><span class="spinner"></span>&nbsp; <span id="progress-label">Checking this computer</span></p>
+    <p class="muted">The first run downloads PantryOS (a few hundred MB) — this can take a few minutes.</p>
+    <p id="progress-error" class="error hidden"></p>
+    <div class="row hidden" id="progress-actions">
+      <button class="secondary" id="btn-diagnostics">Collect diagnostics</button>
+      <button id="btn-retry">Try again</button>
+    </div>
+    <textarea id="diagnostics-out" class="hidden" readonly></textarea>
+  </section>
+
+  <!-- Screen 3: done -->
+  <section id="screen-done" class="hidden">
+    <h1>PantryOS is ready</h1>
+    <p>It's running at <code id="done-url"></code> and starts automatically with Docker.</p>
+    <p class="muted">Finish setting up your household in the app — it will also show you how to
+      reach PantryOS from phones and tablets on your WiFi.</p>
+    <div class="row">
+      <button id="btn-open">Open PantryOS</button>
+    </div>
+  </section>
+
+</div>
+<script>
+const invoke = window.__TAURI__.core.invoke;
+const $ = (id) => document.getElementById(id);
+const show = (id) => { for (const s of ["screen-welcome","screen-progress","screen-done"]) $(s).classList.toggle("hidden", s !== id); };
+
+let appUrl = "";
+
+async function boot() {
+  // Already installed and healthy? Skip straight to "open".
+  try {
+    const status = await invoke("stack_status");
+    if (status.installed && status.healthy) {
+      appUrl = status.url;
+      $("done-url").textContent = status.url;
+      show("screen-done");
+      return;
+    }
+  } catch (_) { /* fresh machine */ }
+
+  try {
+    const docker = await invoke("docker_status");
+    if (!docker.running) {
+      const note = $("docker-note");
+      note.classList.remove("hidden");
+      note.textContent = docker.installed
+        ? "Heads up: the container engine on this computer isn't running yet — start Docker Desktop first, then click Set up."
+        : "Heads up: this computer needs Docker Desktop (free for home use, docker.com). Install and start it, then click Set up.";
+    }
+  } catch (_) { /* surfaced during install instead */ }
+}
+
+async function install() {
+  show("screen-progress");
+  $("progress-error").classList.add("hidden");
+  $("progress-actions").classList.add("hidden");
+  $("progress-label").textContent = "Setting up your PantryOS";
+  try {
+    const result = await invoke("install_stack");
+    appUrl = result.url;
+    $("done-url").textContent = result.url;
+    show("screen-done");
+  } catch (err) {
+    $("progress-label").textContent = "Something went wrong";
+    const el = $("progress-error");
+    el.textContent = String(err);
+    el.classList.remove("hidden");
+    $("progress-actions").classList.remove("hidden");
+  }
+}
+
+$("btn-start").addEventListener("click", install);
+$("btn-retry").addEventListener("click", install);
+$("btn-open").addEventListener("click", () => invoke("open_app", { url: appUrl }));
+$("btn-diagnostics").addEventListener("click", async () => {
+  const out = $("diagnostics-out");
+  out.classList.remove("hidden");
+  out.value = await invoke("diagnostics").catch((e) => String(e));
+  out.select();
+});
+
+boot();
+</script>
+</body>
+</html>

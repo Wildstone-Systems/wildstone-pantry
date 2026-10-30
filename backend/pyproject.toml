@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=app --cov=core --cov=modules --cov-report=term-missing --cov-fail-under=40"
+testpaths = ["tests", "modules"]
+
+[tool.coverage.run]
+omit = ["alembic/*", "migrations/*", "tests/*", "scripts/*"]

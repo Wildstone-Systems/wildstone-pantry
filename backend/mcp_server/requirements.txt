@@ -1,0 +1,6 @@
+# PantryOS MCP server dependencies.
+# IMPORTANT: install these in a SEPARATE virtualenv from the backend — the MCP
+# SDK pulls a newer starlette than the FastAPI backend pins, so they cannot share
+# an environment.
+mcp>=1.2
+httpx>=0.27

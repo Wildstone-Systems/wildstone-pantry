@@ -1,0 +1,86 @@
+name: pantryos-test
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: pantryos
+      POSTGRES_USER: pantryos
+      POSTGRES_PASSWORD: pantryos
+    networks:
+      default:
+        aliases:
+          - postgres
+    volumes:
+      - pantryos_postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantryos -d pantryos"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "15432:5432"
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://pantryos:pantryos@postgres:5432/pantryos
+    networks:
+      default:
+        aliases:
+          - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2).read()",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "18000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    networks:
+      default:
+        aliases:
+          - frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "15173:5173"
+
+  tests:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tests
+    environment:
+      API_BASE_URL: http://backend:8000
+      TEST_ADMIN_EMAIL: admin@pantryos.local
+      TEST_ADMIN_PASSWORD: TestPass123!
+    networks:
+      default:
+        aliases:
+          - tests
+    depends_on:
+      backend:
+        condition: service_healthy
+    # Run both cross-module and module-owned tests with development dependencies.
+    command: ["python", "-m", "pytest", "-q"]
+
+volumes:
+  pantryos_postgres_test_data:

@@ -1,0 +1,91 @@
+# PantryOS product stack (ADR 0018 §4): two containers, one exposed port.
+# The desktop installer generates the env file this expects; to run it by
+# hand, set at minimum POSTGRES_PASSWORD and CONFIG_SECRET_KEY:
+#
+#   POSTGRES_PASSWORD=$(openssl rand -hex 24) \
+#   CONFIG_SECRET_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())") \
+#   docker compose -f docker-compose.product.yml up -d
+#
+# UI + API: http://localhost:${PANTRYOS_PORT:-8420}   (single origin, no CORS)
+# Postgres is NOT published to the host — it is reachable only on the compose
+# network (ADR 0018 §5).
+
+services:
+  pantryos:
+    image: "${PANTRYOS_IMAGE:-ghcr.io/wildstone-systems/pantryos:stable}"
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "${PANTRYOS_PORT:-8420}:8000"
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: "postgresql+psycopg://pantryos_app:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/pantryos"
+      # Passed through, not just AUTH_ENABLED: compose only forwards variables
+      # it lists, so flipping the knob alone would leave the backend on its
+      # built-in default password — which _validate_protected_env rejects under
+      # ENVIRONMENT=production, crash-looping the container with an error that
+      # never mentions the knob. (The first-run wizard's DB-side override is
+      # the easier path and is unaffected either way.)
+      AUTH_ENABLED: "${AUTH_ENABLED:-false}"
+      AUTH_PERSONAL_EMAIL: "${AUTH_PERSONAL_EMAIL:-admin@pantryos.local}"
+      AUTH_PERSONAL_PASSWORD: "${AUTH_PERSONAL_PASSWORD:-}"
+      CONFIG_SECRET_KEY: "${CONFIG_SECRET_KEY:?set CONFIG_SECRET_KEY (Fernet key)}"
+      CORS_ALLOW_ORIGINS: ""
+      BACKUP_DIR: /backups
+      # Update checks power the decided auto-update posture (ADR 0018 §6).
+      # Only version metadata is fetched — pantry data never leaves the box.
+      # Set UPDATE_MANIFEST_URL= (explicit empty) to disable checks entirely.
+      UPDATE_MANIFEST_URL: "${UPDATE_MANIFEST_URL-https://github.com/Wildstone-Systems/wildstone-pantry/releases/latest/download/manifest.json}"
+      # Where people open PantryOS in a browser, told to Wildstone at pairing
+      # for its dashboard's Pantry card (ADR 0026 §7). Empty = not told.
+      PANTRYOS_PUBLIC_URL: "${PANTRYOS_PUBLIC_URL:-}"
+    volumes:
+      - pantryos_product_backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Update supervisor (ADR 0018 §6) — opt in with:
+  #   docker compose -f docker-compose.product.yml --profile auto-update up -d
+  # Owns the update transaction on every install type (the desktop launcher is
+  # just a remote control). Needs the Docker socket, which is host-root
+  # equivalent — acceptable for a household appliance, called out on purpose.
+  updater:
+    image: "${PANTRYOS_UPDATER_IMAGE-ghcr.io/wildstone-systems/pantryos-updater:stable}"
+    build:
+      context: docker/updater
+    profiles: ["auto-update"]
+    environment:
+      MANIFEST_URL: "${UPDATE_MANIFEST_URL-https://github.com/Wildstone-Systems/wildstone-pantry/releases/latest/download/manifest.json}"
+      PROJECT_DIR: /opt/pantryos
+      COMPOSE_FILE: docker-compose.product.yml
+      DEFER_SECONDS: "${UPDATE_DEFER_SECONDS:-86400}"
+      UPDATE_MODE: "${UPDATE_MODE:-auto}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/opt/pantryos:ro
+      - pantryos_updater_state:/state
+      - pantryos_product_backups:/backups
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: pantryos_app
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}"
+      POSTGRES_DB: pantryos
+    volumes:
+      - pantryos_product_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantryos_app -d pantryos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pantryos_product_data:
+  pantryos_product_backups:
+  pantryos_updater_state:

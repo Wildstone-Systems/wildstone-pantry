@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pantryos-postgres
+    environment:
+      POSTGRES_DB: pantryos
+      POSTGRES_USER: pantryos
+      POSTGRES_PASSWORD: pantryos
+    volumes:
+      - pantryos_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantryos -d pantryos"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      # Loopback only (ADR 0018 §5): dev credentials are well-known, so the DB
+      # must never be reachable from the LAN. Containers use the network alias.
+      - "127.0.0.1:5432:5432"
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: pantryos-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://pantryos:pantryos@postgres:5432/pantryos
+      # Defaults to a friction-free self-hosted setup; override from the shell
+      # or an .env file without editing this file.
+      AUTH_ENABLED: "${AUTH_ENABLED:-false}"
+      # Where people open PantryOS in a browser, told to Wildstone at pairing
+      # for its dashboard's Pantry card (ADR 0026 §7). Empty = not told.
+      PANTRYOS_PUBLIC_URL: "${PANTRYOS_PUBLIC_URL:-}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: pantryos-frontend
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  pantryos_postgres_data:

@@ -1,0 +1,1 @@
+export { accountManifest } from "./routes";

@@ -1,0 +1,80 @@
+# PantryOS — external tester deployment stack.
+#
+# This is the PUBLIC-SAFE compose file: it pulls prebuilt images and contains
+# no build context, no source paths and no secrets. It is the file that gets
+# attached to a GitHub Release so a tester can install PantryOS without any
+# access to the source repository.
+#
+# Differences from the repo-root docker-compose.product.yml, and why:
+#   * No `build:` section. With one, `docker compose up` silently falls back to
+#     building from source when the image cannot be pulled — a tester with no
+#     repo checkout gets a confusing build error instead of a clear auth error.
+#   * The image tag is a required, immutable version (no `stable`, no `latest`)
+#     so a tester install is reproducible and rollback is just editing one line.
+#   * No auto-update supervisor. That container needs the Docker socket, which
+#     is host-root equivalent; testers update explicitly (see README.md).
+#   * AUTH_PERSONAL_EMAIL / AUTH_PERSONAL_PASSWORD are passed through, so
+#     setting AUTH_ENABLED=true in .env cannot leave the backend refusing to
+#     boot on the insecure built-in default password.
+#
+# Usage:  cp .env.example .env  &&  <edit .env>  &&  docker compose up -d
+
+services:
+  pantryos:
+    image: "ghcr.io/wildstone-systems/pantryos:${PANTRYOS_VERSION:?set PANTRYOS_VERSION in .env (e.g. 0.1.0)}"
+    # Bind address is a knob: 0.0.0.0 makes PantryOS reachable from phones and
+    # tablets on the same network (the normal household setup); 127.0.0.1
+    # confines it to this machine. Neither exposes anything to the internet —
+    # that requires deliberate router or tunnel configuration.
+    ports:
+      - "${PANTRYOS_BIND:-0.0.0.0}:${PANTRYOS_PORT:-8420}:8000"
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: "postgresql+psycopg://pantryos_app:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/pantryos"
+      CONFIG_SECRET_KEY: "${CONFIG_SECRET_KEY:?set CONFIG_SECRET_KEY in .env (Fernet key)}"
+      # Default is kiosk mode: no login, anyone who can reach the address has
+      # full access. The in-app first-run wizard is the supported way to turn
+      # on household accounts; these two exist so the env knob also works.
+      AUTH_ENABLED: "${AUTH_ENABLED:-false}"
+      AUTH_PERSONAL_EMAIL: "${AUTH_PERSONAL_EMAIL:-admin@pantryos.local}"
+      AUTH_PERSONAL_PASSWORD: "${AUTH_PERSONAL_PASSWORD:-}"
+      # The UI is served by the backend on this same port, so there is no
+      # cross-origin request to allow.
+      CORS_ALLOW_ORIGINS: ""
+      BACKUP_DIR: /backups
+      # Empty = this install makes no unsolicited network calls at all.
+      # Update checks are opt-in and only ever fetch version metadata.
+      UPDATE_MANIFEST_URL: "${UPDATE_MANIFEST_URL-}"
+      # Where people open PantryOS in a browser, told to Wildstone at pairing
+      # for its dashboard's Pantry card (ADR 0026 §7). Empty = not told.
+      PANTRYOS_PUBLIC_URL: "${PANTRYOS_PUBLIC_URL:-}"
+    volumes:
+      - pantryos_backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    # Deliberately not published to the host: the database is reachable only
+    # from the pantryos container over the private compose network.
+    environment:
+      POSTGRES_USER: pantryos_app
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+      POSTGRES_DB: pantryos
+    volumes:
+      - pantryos_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantryos_app -d pantryos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  # Everything you enter into PantryOS lives here — including recipe photos,
+  # which are stored in the database rather than on a separate disk mount.
+  pantryos_data:
+  # Nightly pg_dump archives, downloadable from the in-app admin screen.
+  pantryos_backups:

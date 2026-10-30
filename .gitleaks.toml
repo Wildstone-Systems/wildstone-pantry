@@ -1,0 +1,11 @@
+title = "PantryOS secret detection"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "pantryos-feedback-intake-secret"
+description = "Feedback intake HMAC credential"
+regex = '''(?i)FEEDBACK_INTAKE_SECRET\s*=\s*["']?([^\s"'#]{16,})'''
+secretGroup = 1
+keywords = ["FEEDBACK_INTAKE_SECRET"]

@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.db
+
+# Node
+node_modules/
+dist/
+.vite/
+.DS_Store
+
+# Logs
+*.log
+
+# Coverage / test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Env files (never commit real env; only .env.example is tracked)
+.env
+.env.*
+!.env.example
+
+# Local backend virtualenv
+backend/.venv/
+
+# TS incremental build cache
+*.tsbuildinfo
+
+# Local dev SQLite db
+backend/dev.db
+
+# Claude Code agent worktrees (transient)
+.claude/worktrees/
+
+# Keys, credentials and local databases (never commit)
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+id_rsa*
+id_ed25519*
+kubeconfig
+.htpasswd
+.npmrc
+.pypirc

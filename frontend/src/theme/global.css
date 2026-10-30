@@ -1,0 +1,217 @@
+/* ------------------------------------------------------------------ *
+ * Organic design-system tokens (kiosk redesign).
+ *
+ * The Mantine theme (theme.ts) owns component styling; these CSS custom
+ * properties expose the raw Organic palette so bespoke surfaces — the nav
+ * rail, the Action Console, day/status tags — can reference the exact same
+ * values. Light is the primary (warm cream) theme; dark is a warm-dark
+ * fallback that keeps the terracotta/sage accents.
+ * ------------------------------------------------------------------ */
+
+:root,
+[data-mantine-color-scheme="light"] {
+  --pantry-bg: #f5ead8;
+  --pantry-surface: #ebddc5;
+  --pantry-text: #201e1d;
+  --pantry-text-muted: color-mix(in srgb, #201e1d 55%, transparent);
+
+  --pantry-accent: #c67139;
+  --pantry-accent-hover: #b2622d;
+  --pantry-accent-active: #8c491a;
+  --pantry-accent-100: #fff2eb;
+  --pantry-accent-200: #ffe1d0;
+  --pantry-accent-300: #ffc6a5;
+  --pantry-accent-700: #8c491a;
+  --pantry-accent-800: #643312;
+
+  --pantry-sage: #7a8a5e;
+  --pantry-sage-100: #f0fae1;
+  --pantry-sage-200: #e1eecc;
+  --pantry-sage-600: #728157;
+  --pantry-sage-800: #3d472b;
+
+  --pantry-neutral-200: #eee7db;
+  --pantry-neutral-400: #c0b6a5;
+  --pantry-neutral-600: #82796a;
+  --pantry-neutral-700: #645c50;
+
+  --pantry-divider: color-mix(in srgb, #201e1d 16%, transparent);
+  --pantry-hover: color-mix(in srgb, #201e1d 6%, transparent);
+
+  /* Map Mantine's ground + text to the Organic palette. */
+  --mantine-color-body: var(--pantry-bg);
+  --mantine-color-text: var(--pantry-text);
+}
+
+[data-mantine-color-scheme="dark"] {
+  --pantry-bg: #211c17;
+  --pantry-surface: #2c2620;
+  --pantry-text: #f3e9d8;
+  --pantry-text-muted: color-mix(in srgb, #f3e9d8 55%, transparent);
+
+  --pantry-accent: #d17f45;
+  --pantry-accent-hover: #e08a54;
+  --pantry-accent-active: #c67139;
+  --pantry-accent-100: #4a3320;
+  --pantry-accent-200: #5c3f27;
+  --pantry-accent-300: #6f4c30;
+  --pantry-accent-700: #ffc6a5;
+  --pantry-accent-800: #ffe1d0;
+
+  --pantry-sage: #9db978;
+  --pantry-sage-100: #333a26;
+  --pantry-sage-200: #3d472b;
+  --pantry-sage-600: #b6cd90;
+  --pantry-sage-800: #e1eecc;
+
+  --pantry-neutral-200: #3a332b;
+  --pantry-neutral-400: #6b6153;
+  --pantry-neutral-600: #a89c88;
+  --pantry-neutral-700: #c9bda8;
+
+  --pantry-divider: color-mix(in srgb, #f3e9d8 16%, transparent);
+  --pantry-hover: color-mix(in srgb, #f3e9d8 8%, transparent);
+
+  --mantine-color-body: var(--pantry-bg);
+  --mantine-color-text: var(--pantry-text);
+}
+
+body {
+  background: var(--pantry-bg);
+  color: var(--pantry-text);
+}
+
+/* Prevent long values from blowing up layouts. */
+.aio-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Nav (sidebar) ------------------------------------------------- */
+.pantry-navitem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 999px;
+  min-height: 44px;
+  font-size: 14.5px;
+  color: var(--pantry-text);
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.pantry-navitem:hover {
+  background: var(--pantry-hover);
+}
+.pantry-navitem[data-active="true"] {
+  background: var(--pantry-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.pantry-navitem[data-active="true"] svg {
+  color: #fff;
+}
+
+/* Collapsed-rail icon tile. */
+.pantry-railitem {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--pantry-text-muted);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+.pantry-railitem:hover {
+  background: var(--pantry-hover);
+}
+.pantry-railitem[data-active="true"] {
+  background: var(--pantry-accent);
+  color: #fff;
+}
+
+.pantry-kicker {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--pantry-text) 45%, transparent);
+  margin: 16px 0 4px;
+  padding-left: 14px;
+}
+
+/* --- Tables -------------------------------------------------------- */
+.pantry-table thead th {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--pantry-text-muted);
+  font-weight: 700;
+}
+.pantry-table tbody tr:hover td {
+  background: var(--pantry-hover);
+}
+
+/* --- Tags ---------------------------------------------------------- */
+.pantry-daytag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* --- Recipe / photo placeholder ------------------------------------ */
+.pantry-photo {
+  background: linear-gradient(135deg, var(--pantry-accent-200), var(--pantry-sage-200));
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--pantry-text) 40%, transparent);
+}
+
+/* Preserved from this trunk: prevent long values from blowing up layouts. */
+.aio-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Digit scroll picker (DigitScrollPicker.tsx) --------------------- *
+ * The wheel behaviour lives here because none of it is expressible inline:
+ * snap points, the hidden scrollbar, and the smooth glide when a digit is
+ * set from code (a tap on a neighbour, or a typed digit). Sizing stays in
+ * the component, which owns the row height the snap positions derive from. */
+.pantry-digit-column {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-y;
+  border-radius: 8px;
+}
+
+.pantry-digit-column::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.pantry-digit-column:focus-visible {
+  outline: 2px solid var(--pantry-accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pantry-digit-column {
+    scroll-behavior: auto;
+  }
+}

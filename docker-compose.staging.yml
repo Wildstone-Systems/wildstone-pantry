@@ -1,0 +1,80 @@
+name: pantryos-staging
+
+# Staging stack: separate project name, volume and ports from the dev stack
+# (5432/8000/5173) and the test stack (15432/18000/15173).
+# Run with:  docker compose --env-file .env.staging -f docker-compose.staging.yml up --build -d
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pantryos_postgres_staging_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      # Loopback only — the DB has no business being reachable from the LAN.
+      # Use an SSH tunnel to reach it from another machine.
+      - "127.0.0.1:25432:5432"
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    env_file:
+      - .env.staging
+    environment:
+      # Pinned here, not left to .env.staging: `environment` wins over
+      # `env_file`, so an operator who copies .env.example and forgets to flip
+      # ENVIRONMENT cannot silently start this stack in development mode and
+      # bypass _validate_protected_env (which is what rejects the insecure
+      # credential defaults).
+      ENVIRONMENT: staging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2).read()",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "0.0.0.0:28000:8000"
+    volumes:
+      # Nightly pg_dump target (ADR 0018 §6) — a named volume so backups
+      # survive `up --build` container recreation, not just container restarts.
+      # BACKUP_DIR in .env.staging must point here for the scheduler to run.
+      - pantryos_backups_staging:/backups
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+      # Reachable by name over the LAN, not just by IP.
+      VITE_ALLOWED_HOSTS: ${STAGING_ALLOWED_HOSTS}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "0.0.0.0:25173:5173"
+
+volumes:
+  pantryos_postgres_staging_data:
+  pantryos_backups_staging:

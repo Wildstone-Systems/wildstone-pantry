@@ -1,0 +1,48 @@
+# Build-context exclusions shared by every Dockerfile in this repo.
+#
+# The product image is built with `COPY backend /app` from the repo root, so
+# whatever sits in the working tree at build time lands in an image layer. On a
+# CI runner that tree is a clean checkout, but the README documents a local
+# `docker compose -f docker-compose.product.yml up --build` and instructs
+# developers to create `backend/.env` — without this file that env file, the
+# dev SQLite database and the local virtualenv would all be baked into a
+# distributable image. Exclusions here are the boundary that makes a locally
+# built image safe to hand to someone else.
+#
+# Note: backend/tests is deliberately NOT excluded — docker/Dockerfile.tests
+# runs the backend and module-owned suites for docker-compose.test.yml.
+# Stripping tests from the *product* image is a Dockerfile-side change.
+
+.git
+.gitignore
+.github
+.claude
+
+# Secrets and local state — never in a build context.
+**/.env
+**/.env.*
+**/*.db
+backend/dev.db
+
+# Virtualenvs and dependency trees (reinstalled inside the image).
+**/.venv
+**/node_modules
+
+# Build outputs and caches.
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.coverage
+htmlcov/
+**/*.tsbuildinfo
+**/.vite
+frontend/dist
+
+# Not needed by any image.
+docs
+launcher
+**/*.log
+**/.DS_Store
