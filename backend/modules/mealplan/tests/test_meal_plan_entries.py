@@ -130,6 +130,20 @@ def test_move_to_another_day_goes_to_end_of_cell(client: httpx.Client) -> None:
     assert (resp.json()["plan_date"], resp.json()["position"]) == ("2026-11-02", 1)
 
 
+def test_reorder_within_a_cell(client: httpx.Client) -> None:
+    first = _add(client, title="Turkey").json()
+    _add(client, title="Green beans")
+    third = _add(client, title="Rolls").json()
+
+    resp = client.patch(f"/api/meal-plan/entries/{third['id']}", json={"position": 0})
+    assert resp.status_code == 200, resp.text
+    assert [(e["meal"], e["position"]) for e in _week(client)] == [("Rolls", 0), ("Turkey", 1), ("Green beans", 2)]
+
+    # A position past the end just goes last.
+    client.patch(f"/api/meal-plan/entries/{first['id']}", json={"position": 99})
+    assert [e["meal"] for e in _week(client)] == ["Rolls", "Green beans", "Turkey"]
+
+
 def test_edit_servings_note_and_meal(client: httpx.Client) -> None:
     entry = _add(client, title="Takeout").json()
     recipe = _recipe(client)

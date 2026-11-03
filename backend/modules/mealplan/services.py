@@ -208,7 +208,8 @@ def update(db: Session, entry_id: UUID, payload: MealPlanEntryUpdate) -> dict:
     if "meal_type" in changes:
         entry.meal_type = changes["meal_type"]
     if "position" in changes:
-        entry.position = changes["position"]
+        db.flush()
+        _place(db, entry, changes["position"])
     elif moved:
         # Flush first so the new cell's max ignores this entry's old spot.
         db.flush()
@@ -217,6 +218,15 @@ def update(db: Session, entry_id: UUID, payload: MealPlanEntryUpdate) -> dict:
     db.commit()
     db.refresh(entry)
     return to_read(db, entry)
+
+
+def _place(db: Session, entry: MealPlanEntry, position: int) -> None:
+    """Put ``entry`` at ``position`` in its cell and renumber the cell 0..n-1,
+    so a reorder never leaves two entries tied on the same position."""
+    others = [e for e in repository.cell_entries(db, plan_date=entry.plan_date, meal_type=entry.meal_type) if e.id != entry.id]
+    others.insert(min(position, len(others)), entry)
+    for index, e in enumerate(others):
+        e.position = index
 
 
 def remove(db: Session, entry_id: UUID) -> None:

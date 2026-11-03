@@ -29,6 +29,17 @@ def list_entries(db: Session, *, start: date, end: date) -> list[MealPlanEntry]:
     )
 
 
+def cell_entries(db: Session, *, plan_date: date, meal_type: str) -> list[MealPlanEntry]:
+    """Entries in one day + meal type cell, in display order."""
+    return list(
+        db.scalars(
+            select(MealPlanEntry)
+            .where(MealPlanEntry.plan_date == plan_date, MealPlanEntry.meal_type == meal_type)
+            .order_by(MealPlanEntry.position, MealPlanEntry.created_at)
+        ).all()
+    )
+
+
 def next_position(db: Session, *, plan_date: date, meal_type: str) -> int:
     """One past the last position in a day + meal type cell (0 when empty)."""
     last = db.scalar(
