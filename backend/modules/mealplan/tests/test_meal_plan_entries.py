@@ -90,7 +90,10 @@ def test_unknown_meal_type_is_rejected(client: httpx.Client) -> None:
 
 
 def test_entry_for_one_person(client: httpx.Client) -> None:
-    profile = client.post("/api/household/profiles", json={"display_name": "Sam"}).json()
+    client.post("/api/auth/bootstrap-admin", json={"email": "admin@pantryos.local", "password": "TestPass123!"})
+    login = client.post("/api/auth/login", json={"email": "admin@pantryos.local", "password": "TestPass123!"})
+    admin = {"Authorization": f"Bearer {login.json()['token']}"}
+    profile = client.post("/api/household/profiles", json={"display_name": "Sam"}, headers=admin).json()
     body = _add(client, title="Protein shake", meal_type="snack", profile_id=profile["id"]).json()
     assert body["profile_id"] == profile["id"]
 
