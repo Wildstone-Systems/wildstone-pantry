@@ -156,7 +156,7 @@ export function useRecipeCompleteness() {
 export type RecipeOption = {
   value: string;
   label: string;
-  /** Null when the recipe has no ingredients to score. */
+  /** Null when the recipe has no required ingredients to score. */
   completeness: RecipeCompleteness | null;
 };
 
@@ -169,7 +169,8 @@ export function buildRecipeOptions(
   completeness: RecipeCompleteness[],
   { mostlyCompleteOnly = false }: { mostlyCompleteOnly?: boolean } = {},
 ): RecipeOption[] {
-  const byId = new Map(completeness.map((c) => [c.recipe_id, c]));
+  // Nothing counted (only optional lines) means unscored, not "100% on hand".
+  const byId = new Map(completeness.filter((c) => c.needed_count > 0).map((c) => [c.recipe_id, c]));
   const score = (o: RecipeOption) => (o.completeness ? o.completeness.available_score : -1);
   return recipes
     .map((r) => ({ value: r.id, label: r.name, completeness: byId.get(r.id) ?? null }))

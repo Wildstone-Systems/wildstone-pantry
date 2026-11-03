@@ -95,6 +95,15 @@ describe("recipe completeness", () => {
     ]);
   });
 
+  it("treats a recipe with only optional ingredients as unscored", () => {
+    const withOptionalOnly = [...scores, completeness("d", 0, 0)];
+    expect(buildRecipeOptions(recipes, withOptionalOnly).map((o) => o.label).at(-1)).toBe("Dumplings");
+    expect(buildRecipeOptions(recipes, withOptionalOnly, { mostlyCompleteOnly: true }).map((o) => o.label)).toEqual([
+      "Chilli",
+      "Baked Turkey",
+    ]);
+  });
+
   it("labels counts, and nothing when there is nothing to count", () => {
     expect(completenessLabel(completeness("b", 9, 10))).toBe("9/10 on hand");
     expect(completenessLabel(completeness("x", 0, 0))).toBeNull();
