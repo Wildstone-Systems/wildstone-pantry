@@ -1,6 +1,6 @@
 # Setting up single sign-on (OIDC)
 
-PantryOS supports native OIDC login (ADR 0020) so a homelab that already runs
+PantryOS supports native OIDC login so a homelab that already runs
 an identity provider doesn't need a second set of passwords. This is a short
 walkthrough for the common combo — **LLDAP** as the directory, fronted by
 **Authelia**, **authentik**, **Keycloak**, or **Pocket ID** as the OIDC

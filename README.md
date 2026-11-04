@@ -1,284 +1,100 @@
-# PantryOS
+<div align="center">
 
-A next-generation household operations platform (a modern take on Grocy):
-inventory, shopping, meal planning, tasks, and an agentic automation layer.
-Built as a feature-sliced **modular monolith** (see `ARCHITECTURE.md`):
-- PostgreSQL (SQLite in the test harness)
-- FastAPI (Python) + SQLAlchemy + Alembic
-- Vite + React frontend (PWA plugin enabled)
+# 🥫 PantryOS
 
-## Project Layout
+**Know what's in your kitchen, cook what you have, waste less.**
 
-```text
-/backend
-  /core              # platform kernel: event bus, module registry/manifests
-  /app
-    /core            # shared infra: config, security, db_types
-    /db
-    /models          # shared ORM registry (per-module ownership documented in _meta)
-    /routes /services /schemas   # platform layer: auth, entitlement, feedback, health
-    main.py          # app factory + lifespan; mounts module routers
-  /modules           # feature modules: catalog, inventory, shopping, planning, automation
-    /<domain>/{api,services,schemas,manifest.py,_meta.py,README.md}
-  /migrations
-  /scripts           # CI guards (env parity, alembic, protected-env)
-  conftest.py        # in-process SQLite test harness
-/frontend
-  /src/modules/<domain>/{pages,hooks}   # feature-sliced UI
-  /src/{api,routes,theme,components}
-/scripts
-/docker
-/docs                # SSO / OIDC setup guide
-.github/workflows    # CI
-.env.example  AGENTS.md  ARCHITECTURE.md  README.md
-```
+A self-hosted home for your household's food — inventory, recipes, meal
+planning and shopping in one app that runs on your own hardware.
 
-> Architecture overview: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+[![CI](https://github.com/Wildstone-Systems/wildstone-pantry/actions/workflows/ci.yml/badge.svg)](https://github.com/Wildstone-Systems/wildstone-pantry/actions/workflows/ci.yml)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Wildstone-Systems/wildstone-pantry?include_prereleases)](https://github.com/Wildstone-Systems/wildstone-pantry/releases)
 
-## API Contracts (Phase 0 + Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5)
+[Quick install](#-quick-install) · [Features](#-features) · [Docs](docs/README.md) · [Contributing](CONTRIBUTING.md)
 
-- `GET /health`
-  - Response:
-  - `{ "status": "ok", "database": "connected" }`
-- `GET /api/items`
-- `POST /api/items`
-- `GET /api/items/{item_id}`
-- `PUT /api/items/{item_id}`
-- `DELETE /api/items/{item_id}`
-- `GET /api/locations`
-- `POST /api/locations`
-- `GET /api/inventory?location_id={uuid}`
-- `POST /api/inventory/add`
-- `POST /api/inventory/remove`
-- `POST /api/inventory/adjust`
-- `POST /api/inventory/move`
-- `GET /api/inventory/transactions?location_id={uuid}&limit={n}`
-- `GET /api/barcodes/lookup/{barcode}`
-- `POST /api/barcodes/alias`
-- `POST /api/receipts/ingest`
-- `POST /api/receipts/ingest-image`
-- `GET /api/recipes`
-- `POST /api/recipes`
-- `GET /api/recipes/{recipe_id}`
-- `PUT /api/recipes/{recipe_id}/ingredients`
-- `POST /api/recipes/{recipe_id}/cook`
-- `GET /api/recipes/suggestions/{location_id}`
-- `GET /api/insights/trends/{location_id}`
-- `GET /api/insights/restock/{location_id}`
-- `GET /api/insights/expiring/{location_id}`
-- `POST /api/auth/bootstrap-admin`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
-- `GET /api/auth/users` (admin)
-- `GET /api/entitlement`
-- `POST /api/purchases/import-csv`
-- `POST /api/purchases/preview-csv`
-- `GET /api/purchases`
-- `GET /api/purchases/{purchase_id}`
+![PantryOS dashboard](docs/images/dashboard.png)
 
-## Run With Docker
+</div>
 
-From repo root:
+## ✨ Features
 
-```bash
-docker compose up --build
-```
+- **🏠 Kitchen dashboard** — what's expiring, what's running low, and what you
+  can cook tonight, at a glance.
+- **📦 Inventory** — track stock across fridge, freezer, pantry and more.
+  Lots, containers, best-by dates, waste and a full history.
+- **📷 Fast intake** — scan barcodes, import receipts (text, photo or email)
+  and purchase history.
+- **🍝 Recipes** — see what you can make now, import recipes from the web, and
+  cook along step by step. Cooking takes ingredients out of stock for you.
+- **📅 Meal planning** — plan the week, see nutrition, and send missing
+  ingredients straight to the shopping list.
+- **🛒 Shopping list** — built from what you're low on and what you've planned.
+- **🔥 Calorie tracking** — log meals and see daily totals.
+- **🤖 AI assistant ready** — a built-in [MCP server](docs/mcp-and-agents.md)
+  lets AI assistants check stock, plan meals and update your lists.
+- **🔐 Your data stays home** — runs on your network. Optional
+  [single sign-on](docs/sso-oidc-setup.md) with your existing identity provider.
+- **📱 Installable** — works as a phone/tablet app (PWA).
 
-Services:
-- Postgres: `localhost:5432` (loopback only — dev credentials are well-known)
-- Backend API: `localhost:8000`
-- Frontend: `localhost:5173`
+<table>
+  <tr>
+    <td><img src="docs/images/inventory.png" alt="Inventory" /></td>
+    <td><img src="docs/images/recipes.png" alt="Recipes" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Inventory</b></td>
+    <td align="center"><b>Recipes</b></td>
+  </tr>
+</table>
 
-Backend container applies migrations automatically at startup.
+## 🚀 Quick install
 
-### Installing without a checkout (external testers)
+You need [Docker](https://docs.docker.com/get-started/get-docker/).
 
-Testers can install from the release bundle:
-
-- [`release/`](release/) — the public-safe deployment bundle (image-only
-  compose, `.env.example`, install guide), attached to every GitHub Release by
-  the Release workflow.
-
-### One-command install (Linux / NAS / Raspberry Pi)
-
-Review the script before piping it to a shell:
+**Linux, NAS or Raspberry Pi** — one line (review the script first):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/main/scripts/install-product.sh | bash
 ```
 
-Generates secrets into `~/.pantryos`, starts the product stack, and prints the
-LAN address. Windows/macOS users get the desktop launcher instead (`launcher/`,
-built by the Launcher workflow).
-
-### Product stack (single origin)
-
-The product image (`docker/Dockerfile`, published to
-`ghcr.io/wildstone-systems/pantryos` by the Release workflow on `v*` tags) bakes the
-built frontend into the backend, which serves UI + API on **one port** — no
-CORS, no Vite, Postgres unpublished (ADR 0018). Run it locally:
+**Or with Docker Compose** from a checkout of this repo:
 
 ```bash
 POSTGRES_PASSWORD=$(openssl rand -hex 24) \
 CONFIG_SECRET_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())") \
 docker compose -f docker-compose.product.yml up --build -d
-# → http://localhost:8420
 ```
 
-### Single sign-on (OIDC)
+Then open **<http://localhost:8420>** and follow the setup wizard.
 
-Self-hosters already running an identity provider (LLDAP + Authelia/authentik/
-Keycloak/Pocket ID) can let their household log in with it instead of a
-second PantryOS password — see
-[`docs/sso-oidc-setup.md`](docs/sso-oidc-setup.md) for the walkthrough. Local
-admin login always stays available as a break-glass path.
+> Windows/macOS desktop launcher, the no-source release bundle and other
+> options: see [Getting started](docs/getting-started.md).
 
-## Isolated Test Stack (Docker Compose)
+## 📚 Documentation
 
-This runs a fresh stack on alternate ports with a separate Postgres volume, then executes `pytest` in a container.
+| Guide | |
+|---|---|
+| [Getting started](docs/getting-started.md) | All install options and first run |
+| [Single sign-on (OIDC)](docs/sso-oidc-setup.md) | Authelia, authentik, Keycloak, Pocket ID |
+| [AI assistants (MCP)](docs/mcp-and-agents.md) | Connect an AI assistant |
+| [Long-lived deployments](docs/deployment.md) | Staging stack and secrets |
+| [Development](docs/development.md) | Dev setup, tests, API reference |
+| [Architecture](ARCHITECTURE.md) | How the code is organised |
 
-```bash
-docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
-```
+## 🛠️ Built with
 
-Ports (test stack):
-- Postgres: `localhost:15432`
-- Backend API: `localhost:18000`
-- Frontend: `localhost:15173`
+FastAPI · SQLAlchemy · PostgreSQL · React · Vite · Mantine — organised as a
+[modular monolith](ARCHITECTURE.md).
 
-## Staging Stack (Docker Compose)
+## 🤝 Contributing
 
-A long-lived deployment (e.g. a household box on the LAN) on its own project
-name, volume and ports, so it never collides with the dev or test stacks.
+Contributions are welcome! Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) and
+[Development](docs/development.md).
 
-```bash
-docker compose --env-file .env.staging -f docker-compose.staging.yml up --build -d
-```
+Found a security issue? Please report it privately — see [`SECURITY.md`](SECURITY.md).
 
-Ports (staging stack):
-- Postgres: `127.0.0.1:25432` (loopback only — use an SSH tunnel to reach it)
-- Backend API: `28000` (all interfaces)
-- Frontend: `25173` (all interfaces)
+## 📄 License
 
-Secrets come from an untracked `.env.staging` (copy `.env.example` and fill it
-in). The compose file pins `ENVIRONMENT=staging` on the backend service itself
-rather than trusting the env file, so the stack cannot be started in
-development mode by accident. That makes the backend refuse to boot on insecure
-defaults, so `DATABASE_URL` and `AUTH_PERSONAL_PASSWORD` must be
-real values — see `_validate_protected_env` in `app/core/config.py`.
-
-The staging frontend is a production build served by nginx
-(`docker/Dockerfile.frontend.prod`, `docker/nginx.frontend.conf`), which also
-proxies `/api` to the backend, so the UI is reachable by any hostname or IP.
-To let browser clients on other hosts call the API cross-origin, set
-`CORS_ALLOW_ORIGINS`.
-
-## Quick Install
-
-```bash
-./scripts/install.sh
-```
-
-## Local Backend Run (without Docker)
-
-```bash
-cd backend
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-cp ../.env.example .env
-alembic upgrade head
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## Seed Script
-
-```bash
-cd backend
-python ../scripts/seed.py
-```
-
-Seeds default categories and inventory locations.
-
-## Smoke Test
-
-Prerequisite: API running on `http://localhost:8000` with real Postgres.
-
-```bash
-python scripts/smoke_test.py
-```
-
-Smoke flow:
-1. Health check
-2. Bootstrap admin
-3. Login
-4. Create item
-5. Fetch item
-6. Update item
-7. Create locations
-8. Add inventory
-9. Move inventory
-10. Verify inventory + transactions
-11. Barcode lookup
-12. Receipt text ingestion
-13. Create recipe + ingredients
-14. Cook recipe
-15. Recipe suggestions
-16. AI insight endpoints
-17. Auth me endpoint
-18. Entitlement check
-19. Delete item and confirm deletion
-20. Smoke passed
-
-## QA Gate (Recommended)
-
-One command to run a consistent QA protocol:
-- Check open in-app feedback (triage queue)
-- Frontend unit tests
-- Frontend production build (TypeScript + Vite)
-- Isolated integration tests via `docker-compose.test.yml`
-- Smoke test against the dev stack (can be skipped)
-
-```bash
-./scripts/qa.sh
-```
-
-Useful environment variables:
-- `QA_API_BASE_URL` (defaults to `http://localhost:8000`)
-- `QA_SKIP_SMOKE=1` (skip smoke test)
-
-To just list feedback items:
-
-```bash
-python scripts/check_feedback.py --status open
-```
-
-## Minimal Integration Tests
-
-With API running:
-
-```bash
-cd backend
-pytest -q tests/test_phase0_api.py tests/test_phase1_inventory.py
-pytest -q tests/test_phase2_ingestion.py
-pytest -q tests/test_phase3_recipes.py
-pytest -q tests/test_phase4_insights.py
-pytest -q tests/test_phase5_auth.py
-```
-
-Optional custom base URL:
-
-```bash
-API_BASE_URL=http://localhost:8000 pytest -q tests/test_phase0_api.py
-```
-
-## License
-
-PantryOS is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE)
-(`AGPL-3.0-or-later`). If you run a modified version as a network service, you must
-offer its source to the people using it.
-
-## Contributing & Security
-
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — local checks and what never to commit.
-- [`SECURITY.md`](SECURITY.md) — report vulnerabilities privately, not in public issues.
+[AGPL-3.0-or-later](LICENSE). If you run a modified version as a network
+service, you must offer its source to its users.

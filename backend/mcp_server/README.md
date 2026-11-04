@@ -86,7 +86,7 @@ Meal plan: `list_meal_plan`, `plan_meal`, `update_planned_meal`,
 `remove_planned_meal`, `mark_planned_meal`, `meal_plan_shopping_gap`,
 `push_meal_plan_gap`.
 
-Cook-along (ADR 0026 §6) — step by step, nothing leaves the pantry until
+Cook-along — step by step, nothing leaves the pantry until
 `finish_cooking`: `start_cooking`, `current_step`, `next_step`,
 `previous_step`, `go_to_step`, `finish_cooking`, `stop_cooking`.
 
@@ -108,6 +108,6 @@ internet. The agent key + license key + TLS ride on top.
 
 - The `ingest_product_url` fetch is SSRF-guarded server-side (non-http(s),
   loopback/private/link-local/metadata targets are refused on every redirect
-  hop — ADR 0010).
+  hop).
 - Agent-key scopes are enforced: a read-only key gets `403` on any mutating
   tool; mint a "Read + write" key for the full toolset.
