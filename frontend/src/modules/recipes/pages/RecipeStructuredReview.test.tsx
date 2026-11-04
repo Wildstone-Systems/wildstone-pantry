@@ -30,7 +30,9 @@ async function review(unit = "each", withSourceIds = false) {
 
 it("keeps backend identity and source, then saves edited review in one structured request", async () => {
   const user = await review();
-  expect(post).not.toHaveBeenCalled();
+  // Nothing is SAVED on load. (The rules-only import-preview may already have
+  // fired from its 600 ms auto-check timer on a slow runner — that's intended.)
+  expect(post).not.toHaveBeenCalledWith("/api/recipes/import-reviewed", expect.anything());
   expect(screen.getByText("Source: 1 1/2 cups flour")).toBeInTheDocument();
   expect(screen.getByText("Source file: bread.png")).toBeInTheDocument();
   expect(screen.getByText("Check ingredient")).toBeInTheDocument();
@@ -168,7 +170,9 @@ it("discards a delayed review when the recipe changes during the request", async
 it("only requests optional classifier hints explicitly and keeps manual confirmation available when disabled", async () => {
   auth.isAdmin = true;
   const user = await review();
-  expect(post).not.toHaveBeenCalled();
+  // The classifier is never asked on load; only the timed rules-only
+  // import-preview may already have run.
+  expect(post).not.toHaveBeenCalledWith("/api/recipes/import-review", expect.anything());
   post.mockResolvedValueOnce({ data: { binding: "manual-hash", status: "disabled", provider_requests: 0, warning: "Verify every suggestion", annotations: [], lines: [
     { source_line_id: "line:1", raw_line: "Mix well", line_index: 1, start: 10, end: 18, field_path: null, role: "instruction", warnings: ["This may be a cooking step; remove it from ingredients."] },
   ] } });
