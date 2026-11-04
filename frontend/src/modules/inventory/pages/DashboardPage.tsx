@@ -64,8 +64,8 @@ function greetingFor(date: Date): string {
   return `${weekday} ${part}`;
 }
 
-function LocationHint({ show, name }: { show: boolean; name: string }) {
-  if (!show) return null;
+function LocationHint({ name }: { name: string }) {
+  if (!name) return null;
   return (
     <Text component="span" size="xs" c="dimmed" ml={8}>
       · {name}
@@ -83,9 +83,12 @@ export function DashboardPage() {
   const { data: locations } = useLocations();
   const locationList = useMemo(() => locations ?? [], [locations]);
 
-  const expiringQuery = useScopedExpiring(selectedLocationId, 7);
-  const restockQuery = useScopedRestock(selectedLocationId);
-  const recipesQuery = useScopedRecipeSuggestions(selectedLocationId);
+  // Expiring / Running low / Cook tonight are household questions, so they
+  // always look across every location (pooled server-side) regardless of the
+  // location pill. Only Quick Log (where you write) follows the pill.
+  const expiringQuery = useScopedExpiring(null, 7);
+  const restockQuery = useScopedRestock(null);
+  const recipesQuery = useScopedRecipeSuggestions(null);
   const trendsQuery = useScopedTrends(selectedLocationId, 30);
   const inventoryQuery = useScopedInventory(selectedLocationId);
   const inventory = inventoryQuery.data;
@@ -386,7 +389,7 @@ export function DashboardPage() {
               left={
                 <>
                   {item.item_name}
-                  <LocationHint show={isAll} name={item.location_name} />
+                  <LocationHint name={item.location_name} />
                 </>
               }
               right={<DayTag days={item.days_until_expiration} />}
@@ -406,7 +409,7 @@ export function DashboardPage() {
               left={
                 <>
                   {suggestion.item_name}
-                  <LocationHint show={isAll} name={suggestion.location_name} />
+                  <LocationHint name={suggestion.location_name} />
                 </>
               }
               right={

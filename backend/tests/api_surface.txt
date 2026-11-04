@@ -56,8 +56,11 @@ GET /api/feedback
 GET /api/household/profiles
 GET /api/ingredient-match-reviews/{review_id}
 GET /api/ingredient-reference
+GET /api/insights/expiring
 GET /api/insights/expiring/{location_id}
+GET /api/insights/restock
 GET /api/insights/restock/{location_id}
+GET /api/insights/trends
 GET /api/insights/trends/{location_id}
 GET /api/integrations/kroger/broker/callback
 GET /api/integrations/kroger/broker/status

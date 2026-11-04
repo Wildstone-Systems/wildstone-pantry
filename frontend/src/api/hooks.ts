@@ -392,6 +392,8 @@ export type ExpiringItem = {
   item_name: string;
   expiration_date: string;
   days_until_expiration: number;
+  /** Where the lot lives — set on household-wide (all locations) responses. */
+  location_id?: string | null;
 };
 
 export type ExpiringResponse = { location_id: string; expiring_items: ExpiringItem[] };
