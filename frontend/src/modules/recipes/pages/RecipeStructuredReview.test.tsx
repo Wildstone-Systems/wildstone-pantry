@@ -30,8 +30,7 @@ async function review(unit = "each", withSourceIds = false) {
 
 it("keeps backend identity and source, then saves edited review in one structured request", async () => {
   const user = await review();
-  // Nothing is SAVED on load. (The rules-only import-preview may already have
-  // fired from its 600 ms auto-check timer on a slow runner — that's intended.)
+  // The rules-only auto-check may already have run (600ms debounce); nothing is saved on load.
   expect(post).not.toHaveBeenCalledWith("/api/recipes/import-reviewed", expect.anything());
   expect(screen.getByText("Source: 1 1/2 cups flour")).toBeInTheDocument();
   expect(screen.getByText("Source file: bread.png")).toBeInTheDocument();
@@ -98,7 +97,7 @@ it("keeps invalid intermediate form values local and normalizes explicit model r
   const ask = screen.getByRole("button", { name: "Ask classifier for optional hints" });
   expect(ask).toBeDisabled();
   await user.click(ask);
-  expect(post).not.toHaveBeenCalled();
+  expect(post).not.toHaveBeenCalledWith("/api/recipes/import-review", expect.anything());
   await user.clear(title);
   await user.type(title, "  Bread  ");
   post.mockResolvedValueOnce({ data: { binding: "model-hash", lines: [], annotations: [], status: "disabled", warning: "Verify source" } });
@@ -113,7 +112,7 @@ it("blocks an unknown unit on a new ingredient before saving", async () => {
   const user = await review("pinch");
   expect(await screen.findByText(/Can't save yet/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Save Recipe" })).toBeDisabled();
-  expect(post).not.toHaveBeenCalled();
+  expect(post).not.toHaveBeenCalledWith("/api/recipes/import-reviewed", expect.anything());
   await user.click(screen.getByDisplayValue("pinch (unsupported)"));
   await user.click(screen.getByRole("option", { name: "each" }));
   expect(screen.getByRole("button", { name: "Save Recipe" })).toBeDisabled();
@@ -170,8 +169,7 @@ it("discards a delayed review when the recipe changes during the request", async
 it("only requests optional classifier hints explicitly and keeps manual confirmation available when disabled", async () => {
   auth.isAdmin = true;
   const user = await review();
-  // The classifier is never asked on load; only the timed rules-only
-  // import-preview may already have run.
+  // Only the rules-only auto-check may run on load; the classifier needs an explicit request.
   expect(post).not.toHaveBeenCalledWith("/api/recipes/import-review", expect.anything());
   post.mockResolvedValueOnce({ data: { binding: "manual-hash", status: "disabled", provider_requests: 0, warning: "Verify every suggestion", annotations: [], lines: [
     { source_line_id: "line:1", raw_line: "Mix well", line_index: 1, start: 10, end: 18, field_path: null, role: "instruction", warnings: ["This may be a cooking step; remove it from ingredients."] },

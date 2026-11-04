@@ -16,10 +16,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
 def surface_lines() -> list[str]:
+    from fastapi.routing import iter_route_contexts
+
     from app.main import app
 
     lines: set[str] = set()
-    for route in app.routes:
+    # FastAPI keeps included routers nested; iter_route_contexts flattens them.
+    for route in iter_route_contexts(app.routes):
         methods = getattr(route, "methods", None) or set()
         path = getattr(route, "path", "")
         if not path.startswith("/api") and path != "/health":

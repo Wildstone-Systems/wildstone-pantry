@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from conftest import make_app_client
 from mcp_server.client import PantryOSClient
 
 _JSONLD = """
@@ -34,7 +35,7 @@ def _bootstrap_agent_key() -> str:
 
 
 def _client(agent_key: str) -> PantryOSClient:
-    return PantryOSClient(agent_key=agent_key, http=TestClient(app))
+    return PantryOSClient(agent_key=agent_key, http=make_app_client())
 
 
 def test_client_drives_shopping_and_ingest(monkeypatch) -> None:

@@ -12,10 +12,9 @@ from pathlib import Path
 import httpx
 import pytest
 import sqlalchemy as sa
-from fastapi.testclient import TestClient
+from conftest import make_app_client
 
 from app.db.session import SessionLocal
-from app.main import app
 from mcp_server.client import PantryOSClient
 
 _OVERRIDE = {"calories": 250.5, "protein_g": 12, "fat_g": 8.25, "carbs_g": 30, "source": "Publisher label"}
@@ -175,8 +174,8 @@ def test_write_guard_rejects_unauthorized_identities(client: httpx.Client) -> No
 def test_mcp_client_round_trip_and_read_only_rejection(client: httpx.Client) -> None:
     h = _admin(client)
     recipe = _partial_recipe(client, h, servings=2)
-    writer = PantryOSClient(agent_key=_agent_key(client, h, "read,write"), http=TestClient(app))
-    reader = PantryOSClient(agent_key=_agent_key(client, h, "read"), http=TestClient(app))
+    writer = PantryOSClient(agent_key=_agent_key(client, h, "read,write"), http=make_app_client())
+    reader = PantryOSClient(agent_key=_agent_key(client, h, "read"), http=make_app_client())
 
     with pytest.raises(httpx.HTTPStatusError) as denied:
         reader.set_recipe_nutrition_override(recipe, **{k: v for k, v in _OVERRIDE.items()})
