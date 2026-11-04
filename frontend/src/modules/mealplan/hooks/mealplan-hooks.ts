@@ -306,3 +306,25 @@ export function useTurnOffCalendarFeed() {
     onSuccess: invalidate,
   });
 }
+
+// --- nutrition forecast (#34) ----------------------------------------------------
+
+export type ForecastDay = { date: string; calories: number; partial: boolean; unknown_meals: number; meals: number };
+export type ForecastPerson = { profile_id: string; display_name: string; target: number | null; days: ForecastDay[] };
+export type NutritionForecast = { start: string; days: number; people: ForecastPerson[] };
+
+export function useNutritionForecast(start: string) {
+  return useQuery({
+    queryKey: [...KEY, "nutrition", start],
+    queryFn: async () =>
+      (await api.get<NutritionForecast>("/api/meal-plan/nutrition", { params: { start, days: 7 } })).data,
+  });
+}
+
+/** "1,850 / 2,000 kcal", "~400 kcal +1?" — `~` = some ingredient lacks data,
+ *  `+N?` = N planned meals with no calorie data at all. */
+export function forecastLabel(day: ForecastDay, target: number | null): string {
+  const kcal = `${day.partial ? "~" : ""}${day.calories.toLocaleString()}`;
+  const base = target != null ? `${kcal} / ${Math.round(target).toLocaleString()} kcal` : `${kcal} kcal`;
+  return day.unknown_meals > 0 ? `${base} +${day.unknown_meals}?` : base;
+}

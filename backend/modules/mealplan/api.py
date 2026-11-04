@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import allow_kiosk, deny_agent_keys, require_authenticated_admin, resolve_actor
 from app.db import get_db
-from modules.mealplan import calendar_feed, services, shopping_gap
+from modules.mealplan import calendar_feed, nutrition, services, shopping_gap
 from modules.mealplan.schemas import (
     ExcludedItemCreate,
     ExcludedItemRead,
@@ -24,6 +24,7 @@ from modules.mealplan.schemas import (
     MealPlanEntryRead,
     MealPlanEntryUpdate,
     MealPlanWeek,
+    NutritionForecast,
     ShoppingGap,
     ShoppingGapPush,
     ShoppingGapPushResult,
@@ -107,6 +108,19 @@ def cooked_entry(entry_id: UUID, payload: MealPlanEntryCooked, db: Session = Dep
 @router.post("/entries/{entry_id}/reset", response_model=MealPlanEntryRead)
 def reset_entry(entry_id: UUID, db: Session = Depends(get_db)):
     return _run(db, services.reset, entry_id)
+
+
+# --- nutrition forecast (#34) ---------------------------------------------------
+
+
+@router.get("/nutrition", response_model=NutritionForecast)
+def get_nutrition_forecast(
+    start: date = Query(..., description="First day (YYYY-MM-DD); the UI sends a Sunday"),
+    days: int = Query(7, ge=1, le=services.MAX_DAYS),
+    db: Session = Depends(get_db),
+):
+    """Planned calories per person per day, against each person's target."""
+    return _run(db, nutrition.forecast, start=start, days=days)
 
 
 # --- shopping bridge (#31) -------------------------------------------------------
