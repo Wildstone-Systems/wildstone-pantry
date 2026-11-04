@@ -50,6 +50,22 @@ def next_position(db: Session, *, plan_date: date, meal_type: str) -> int:
     return 0 if last is None else last + 1
 
 
+def fingerprint_rows(db: Session) -> list[tuple]:
+    """Every entry's identity and last change, in a stable order (#33)."""
+    return list(
+        db.execute(
+            select(
+                MealPlanEntry.id,
+                MealPlanEntry.plan_date,
+                MealPlanEntry.meal_type,
+                MealPlanEntry.position,
+                MealPlanEntry.status,
+                MealPlanEntry.updated_at,
+            ).order_by(MealPlanEntry.id)
+        ).all()
+    )
+
+
 def add(db: Session, entry: MealPlanEntry) -> MealPlanEntry:
     db.add(entry)
     return entry

@@ -30,18 +30,18 @@ class MealRequestError(ValueError):
     an uncertain food, which foods it could be."""
 
 
-def _uuid(value, field: str) -> UUID:
+def uuid_field(value, field: str) -> UUID:
     try:
         return UUID(str(value))
     except ValueError as exc:
         raise MealRequestError(f"{field} must be an id") from exc
 
 
-def _profile(db: Session, body: dict) -> str:
+def profile_for(db: Session, body: dict) -> str:
     if body.get("profile_id"):
         # The same check the plate route makes: an unknown or inactive
         # profile would log a meal nobody can see.
-        profile = resolve_actor_profile(db, str(_uuid(body["profile_id"], "profile_id")))
+        profile = resolve_actor_profile(db, str(uuid_field(body["profile_id"], "profile_id")))
         if profile is None:
             raise MealRequestError("no active household profile has that profile_id")
         return profile
@@ -61,7 +61,7 @@ def _food(db: Session, body: dict):
     candidates to choose from (then sent back as item_id or fdc_id)."""
     food = str(body.get("food") or "").strip()
     if body.get("item_id"):
-        item = get_item(db, _uuid(body["item_id"], "item_id"))
+        item = get_item(db, uuid_field(body["item_id"], "item_id"))
         if item is None:
             raise MealRequestError("no food with that item_id")
         return item
@@ -116,11 +116,11 @@ def _quantity(body: dict) -> Decimal:
 
 def log_meal(db: Session, body: dict) -> dict:
     """Plate a food for a member, taken from stock when there is some."""
-    profile_id = _profile(db, body)
+    profile_id = profile_for(db, body)
     item = _food(db, body)
     quantity = _quantity(body)
     unit = str(body.get("unit") or "each").strip() or "each"
-    location_id = _uuid(body["location_id"], "location_id") if body.get("location_id") else fullest_location(db, item.id)
+    location_id = uuid_field(body["location_id"], "location_id") if body.get("location_id") else fullest_location(db, item.id)
     try:
         event_id, row, item, eaten, calories, *_macros = plate(
             db,
@@ -146,7 +146,7 @@ def log_meal(db: Session, body: dict) -> dict:
 def undo_meal(db: Session, body: dict) -> dict:
     """Take back a logged meal (stock it used goes back). Repeat-safe: undoing
     one already undone says so rather than failing."""
-    event_id = _uuid(body.get("event_id"), "event_id")
+    event_id = uuid_field(body.get("event_id"), "event_id")
     try:
         delete_plate(db, event_id=event_id)
     except LookupError as exc:
