@@ -12,6 +12,7 @@ MODULE_INFO = {
         "planning": ["cook_sessions", "list_expiring_items", "cook_events_since", "suggest_recipes"],
         "shopping": ["list_entries", "add_entry_once", "check_off_by_name", "items_below_threshold", "connector_config"],
         "agent": ["build_summary"],
+        "mealplan": ["list_week", "create", "create_many", "remove", "week_start", "plan_state"],
     },
     "invariants": [
         "Outbox rows are written in the same transaction that advances the relay cursor.",

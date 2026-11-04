@@ -2,6 +2,7 @@ import { ActionIcon, AppShell, Box, Burger, Group, ScrollArea, Stack, Text, Tool
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
   BarChart3,
+  CalendarDays,
   ChefHat,
   ChevronLeft,
   ChevronRight,
@@ -49,6 +50,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     section: "Meals",
     items: [
+      { label: "Meal Plan", to: ROUTES.mealPlan, icon: CalendarDays },
       { label: "Log Meal", to: ROUTES.logMeal, icon: Utensils },
       { label: "Calories", to: ROUTES.calories, icon: Flame },
     ],
