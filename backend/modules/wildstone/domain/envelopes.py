@@ -234,6 +234,20 @@ def shopping_list_changed(*, before: str, after: str, item_count: int, changed_a
     )
 
 
+def meal_plan_changed(*, before: str, after: str, upcoming: int, changed_at: datetime) -> dict:
+    """``pantry.meal_plan_changed`` (#33): the meal plan settled into a new
+    state after a burst of edits. Only a count of planned meals from today on
+    — the plan itself is one ``pantry.meal_plan`` query away. Keyed like the
+    grocery list: one event per change, however often it is read."""
+    return _envelope(
+        kind="meal_plan",
+        key=f"{before}->{after}@{_iso(changed_at)}",
+        type_="pantry.meal_plan_changed",
+        occurred_at=changed_at,
+        payload={"upcoming_meals": upcoming},
+    )
+
+
 def timer_finished(timer: dict, *, member: str | None) -> dict:
     """A kitchen timer went off (ADR 0026 §6.1). Keyed on the timer, so one
     timer is one event however many passes see it. The subject is whoever

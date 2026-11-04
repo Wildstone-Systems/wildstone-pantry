@@ -16,7 +16,7 @@ class ConsumptionTrendRead(BaseModel):
 
 
 class ConsumptionTrendResponse(BaseModel):
-    location_id: UUID
+    location_id: UUID | None
     trends: list[ConsumptionTrendRead]
 
 
@@ -30,7 +30,7 @@ class RestockSuggestionRead(BaseModel):
 
 
 class RestockSuggestionResponse(BaseModel):
-    location_id: UUID
+    location_id: UUID | None
     suggestions: list[RestockSuggestionRead]
 
 
@@ -47,8 +47,9 @@ class ExpiringItemRead(BaseModel):
     quantity_remaining: Decimal | None = None
     unit: str | None = None
     status: str | None = None
+    location_id: UUID | None = None
 
 
 class ExpiringItemResponse(BaseModel):
-    location_id: UUID
+    location_id: UUID | None
     expiring_items: list[ExpiringItemRead]
