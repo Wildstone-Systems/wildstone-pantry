@@ -31,10 +31,41 @@ from app.db.session import engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Base  # noqa: E402
 
+
+
+class InProcessTransport(httpx.BaseTransport):
+    """Serve ``httpx`` requests from the in-process app via Starlette's TestClient.
+
+    Starlette builds TestClient on ``httpx2`` whenever that package is installed
+    (``mcp`` depends on it), so its responses raise ``httpx2`` errors that the
+    app's ``httpx`` error handling does not catch. Wrapping it keeps every test
+    request and response on plain ``httpx``.
+    """
+
+    def __init__(self, asgi_app) -> None:  # noqa: ANN001
+        self._app_client = TestClient(asgi_app, follow_redirects=False)
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        resp = self._app_client.request(
+            request.method,
+            str(request.url),
+            headers=list(request.headers.multi_items()),
+            content=request.read(),
+        )
+        # TestClient already decoded the body; drop the encoding header so
+        # httpx does not try to decode it a second time.
+        headers = [(k, v) for k, v in resp.headers.multi_items() if k.lower() != "content-encoding"]
+        return httpx.Response(resp.status_code, headers=headers, content=resp.content, request=request)
+
+
+def make_app_client(asgi_app=app) -> httpx.Client:  # noqa: ANN001
+    """An ``httpx.Client`` whose requests are served by the in-process app."""
+    return httpx.Client(transport=InProcessTransport(asgi_app), base_url="http://testserver")
+
+
 # A single in-process client bound to the ASGI app; all tests share it.
-# TestClient is a sync httpx.Client whose transport serves the app directly,
-# so absolute URLs (e.g. http://localhost:8000/...) still route to the app.
-_client = TestClient(app)
+# Absolute URLs (e.g. http://localhost:8000/...) still route to the app.
+_client = make_app_client()
 
 
 @pytest.fixture(autouse=True)
