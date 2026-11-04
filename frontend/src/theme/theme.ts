@@ -3,6 +3,7 @@ import {
   Card,
   createTheme,
   Input,
+  Modal,
   type MantineColorsTuple,
   Paper,
   rem,
@@ -114,6 +115,11 @@ export const theme = createTheme({
       styles: {
         root: { fontWeight: 600 },
       },
+    }),
+    // Phones: full-screen modals that scroll as a page, so the on-screen
+    // keyboard can't trap the content.
+    Modal: Modal.extend({
+      defaultProps: { fullScreen: typeof window !== "undefined" && window.matchMedia?.("(max-width: 48em)").matches },
     }),
     Input: Input.extend({
       defaultProps: { radius: 999 },

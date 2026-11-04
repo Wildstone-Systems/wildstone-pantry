@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core import settings
 from app.models import AuthToken, User
+from app.services.device_keys import PREFIX as DEVICE_KEY_PREFIX
 
 
 def _hash_password(password: str, salt: str) -> str:
@@ -85,7 +86,12 @@ def mint_token(db: Session, user: User) -> AuthToken:
     ADR 0020) so both paths mint sessions identically."""
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=settings.auth_token_ttl_hours)
+    # ``require_user`` routes any bearer token starting with the device-key
+    # prefix (case-insensitively) to device-key auth, so a session token must
+    # never start with it; token_urlsafe would otherwise do so ~1 in 65,536.
     token_value = secrets.token_urlsafe(48)
+    while token_value.lower().startswith(DEVICE_KEY_PREFIX):
+        token_value = secrets.token_urlsafe(48)
 
     token = AuthToken(
         user_id=user.id,
