@@ -193,3 +193,11 @@ it("re-checks automatically after edits so Save unlocks without re-clicking Chec
   await user.click(screen.getByRole("button", { name: "Save Recipe" }));
   await waitFor(() => expect(post).toHaveBeenCalledWith("/api/recipes/import-reviewed", expect.objectContaining({ confirmed: true })));
 });
+
+it("a manual check started before the auto-check fires is not discarded by it", async () => {
+  const user = await review();
+  await user.click(screen.getByRole("button", { name: "Check current recipe" }));
+  await screen.findByRole("checkbox", { name: /I checked the source/ });
+  await new Promise((r) => setTimeout(r, 800));
+  expect(post.mock.calls.filter((c) => c[0] === "/api/recipes/import-preview")).toHaveLength(1);
+});

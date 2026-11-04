@@ -65,6 +65,7 @@ export function EditRecipePage() {
   const [reviewBusy, setReviewBusy] = useState(false);
   const latestPacket = useRef("");
   const reviewGeneration = useRef(0);
+  const autoCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [status, setStatus] = useState("");
   const [linkingOutput, setLinkingOutput] = useState(false);
@@ -226,11 +227,21 @@ export function EditRecipePage() {
   // locked until the user finds and re-clicks "Check current recipe".
   useEffect(() => {
     if (!importSource || !currentPacket) return;
-    const timer = setTimeout(() => void requestReview(false), 600);
+    const timer = setTimeout(() => {
+      autoCheckTimer.current = null;
+      void requestReview(false);
+    }, 600);
+    autoCheckTimer.current = timer;
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPacket, Boolean(importSource)]);
   const requestReview = async (classifier: boolean) => {
+    // A manual check supersedes a pending auto-check; otherwise the timer
+    // would fire mid-request and discard this response as stale.
+    if (autoCheckTimer.current) {
+      clearTimeout(autoCheckTimer.current);
+      autoCheckTimer.current = null;
+    }
     const packet = latestPacket.current;
     if (!packet) {
       setStatus("Fix the recipe form before requesting a review.");
