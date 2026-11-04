@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 import httpx
+from fastapi.routing import iter_route_contexts
 
 from app.main import create_app
 
@@ -22,7 +23,7 @@ def test_every_guide_path_resolves_to_a_real_route(client: httpx.Client) -> None
     guide = client.get("/api/agent/guide").json()
 
     # Real routes, with {param} placeholders normalised to a common token.
-    real = {re.sub(r"\{[^}]+\}", "{}", route.path) for route in create_app().routes if hasattr(route, "path")}
+    real = {re.sub(r"\{[^}]+\}", "{}", route.path) for route in iter_route_contexts(create_app().routes)}
 
     for task in guide["tasks"]:
         norm = re.sub(r"\{[^}]+\}", "{}", task["path"])
