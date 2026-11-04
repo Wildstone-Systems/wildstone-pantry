@@ -8,6 +8,7 @@ import { catalogManifest } from "@/modules/catalog/routes";
 import { feedbackManifest } from "@/modules/feedback/routes";
 import { insightsManifest } from "@/modules/insights/routes";
 import { inventoryManifest } from "@/modules/inventory/routes";
+import { mealPlanManifest } from "@/modules/mealplan/routes";
 import { mealsManifest } from "@/modules/meals/routes";
 import { recipesManifest } from "@/modules/recipes/routes";
 import { shoppingManifest } from "@/modules/shopping/routes";
@@ -18,6 +19,7 @@ export const allManifests: ModuleManifest[] = [
   catalogManifest,
   inventoryManifest,
   recipesManifest,
+  mealPlanManifest,
   mealsManifest,
   shoppingManifest,
   insightsManifest,

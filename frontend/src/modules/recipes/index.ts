@@ -10,3 +10,4 @@ export * from './hooks/ad-hoc-hooks';
 // Export page components
 export { RecipesPage } from './pages/RecipesPage';
 export { EditRecipePage } from './pages/EditRecipePage';
+export { RecipeThumb } from './components/RecipeThumb';

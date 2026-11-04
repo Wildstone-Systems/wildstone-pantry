@@ -1,20 +1,14 @@
 import { Button, Card, Group, Stack, Text, Title } from "@mantine/core";
 import { Link } from "react-router-dom";
 
-import { useConsumptionTrends, useExpiringItems, useRestockSuggestions } from "@/api/hooks";
+import { useScopedExpiring, useScopedRestock, useScopedTrends } from "@/modules/inventory";
 import { ROUTES } from "@/routes/paths";
-import { useAppState } from "@/state/AppStateProvider";
 
+/** Household-wide insights: every location pooled, no location selection needed. */
 export function InsightsPage() {
-  const { selectedLocationId } = useAppState();
-
-  const trendsQuery = useConsumptionTrends(selectedLocationId, 30);
-  const restockQuery = useRestockSuggestions(selectedLocationId);
-  const expiringQuery = useExpiringItems(selectedLocationId, 7);
-
-  const trends = trendsQuery.data ?? [];
-  const restock = restockQuery.data ?? [];
-  const expiring = expiringQuery.data ?? [];
+  const trends = useScopedTrends(null, 30).data;
+  const restock = useScopedRestock(null).data;
+  const expiring = useScopedExpiring(null, 7).data;
 
   return (
     <Stack>
@@ -48,7 +42,7 @@ export function InsightsPage() {
             ))}
             {trends.length === 0 ? (
               <Text size="sm" c="dimmed">
-                {selectedLocationId ? "No trend data available." : "Select a location first (top-right)."}
+                No trend data available.
               </Text>
             ) : null}
           </Stack>
@@ -72,7 +66,7 @@ export function InsightsPage() {
             ))}
             {restock.length === 0 ? (
               <Text size="sm" c="dimmed">
-                {selectedLocationId ? "No restock suggestions right now." : "Select a location first (top-right)."}
+                No restock suggestions right now.
               </Text>
             ) : null}
           </Stack>
@@ -85,18 +79,19 @@ export function InsightsPage() {
           <Stack gap="xs">
             {expiring.map((item) => (
               <div
-                key={`${item.item_id}-${item.expiration_date}`}
+                key={`${item.location_id}-${item.item_id}-${item.expiration_date}`}
                 style={{ padding: "6px 0", borderBottom: "1px solid var(--mantine-color-gray-3)" }}
               >
                 <Text fw={700}>{item.item_name}</Text>
                 <Text size="sm">
                   Exp: {item.expiration_date} ({item.days_until_expiration} days)
+                  {item.location_name ? ` · ${item.location_name}` : ""}
                 </Text>
               </div>
             ))}
             {expiring.length === 0 ? (
               <Text size="sm" c="dimmed">
-                {selectedLocationId ? "No items expiring soon." : "Select a location first (top-right)."}
+                No items expiring soon.
               </Text>
             ) : null}
           </Stack>

@@ -151,6 +151,12 @@ def resolve_image_src(recipe: Recipe, *, has_upload: bool) -> str | None:
     An uploaded photo beats an imported one: if you went to the trouble of
     photographing your own version of the dish, that is the picture you meant.
     """
+    return image_src_for(recipe.id, recipe.image_url, has_upload=has_upload)
+
+
+def image_src_for(recipe_id: UUID, image_url: str | None, *, has_upload: bool) -> str | None:
+    """``resolve_image_src`` for callers holding plain columns, not an ORM row
+    (list/suggestion queries). Same precedence, one implementation."""
     if has_upload:
-        return f"/api/recipes/{recipe.id}/image"
-    return recipe.image_url
+        return f"/api/recipes/{recipe_id}/image"
+    return image_url
