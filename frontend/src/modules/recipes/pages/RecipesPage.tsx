@@ -66,6 +66,8 @@ export function RecipesPage() {
   const suggestions: RecipeSuggestion[] = suggestionsQuery.data ?? [];
 
   const [importText, setImportText] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Recipe | null>(null);
   const [availabilityRecipe, setAvailabilityRecipe] = useState<Recipe | null>(null);
 
@@ -261,6 +263,12 @@ export function RecipesPage() {
             Cook something
           </Button>
           <Button onClick={() => navigate(ROUTES.recipesNew)}>New Recipe</Button>
+          <Button variant="default" onClick={() => setImportOpen(true)}>
+            Import a Recipe
+          </Button>
+          <Button variant="default" onClick={() => setSearchOpen(true)}>
+            Find Recipe Online
+          </Button>
         </Group>
       </Group>
 
@@ -289,7 +297,7 @@ export function RecipesPage() {
           </Text>
         ) : recipes.length === 0 ? (
           <Text size="sm" c="dimmed">
-            No recipes yet. Add one by hand, or import from a photo, a PDF or pasted text below.
+            No recipes yet. Add one by hand, or use Import a Recipe or Find Recipe Online above.
           </Text>
         ) : (
           isMobile ? (
@@ -414,15 +422,18 @@ export function RecipesPage() {
         )}
       </Card>
 
-      <Card withBorder>
-        <Title order={3} mb="xs">
-          Import a Recipe
-        </Title>
+
+      <Modal
+        opened={importOpen}
+        onClose={() => setImportOpen(false)}
+        title="Import a Recipe"
+        size="lg"
+      >
         <Text size="sm" c="dimmed" mb="sm">
           Photo, PDF or pasted text. You get to review and correct everything before it saves.
         </Text>
 
-        <Group align="flex-start" grow>
+        <Stack gap="md">
           <Stack gap="sm">
             <FileButton onChange={handleParseFile} accept="image/*,application/pdf">
               {(props) => (
@@ -454,10 +465,17 @@ export function RecipesPage() {
               Parse Text
             </Button>
           </Stack>
-        </Group>
-      </Card>
+        </Stack>
+      </Modal>
 
-      <RecipeImportSearch />
+      <Modal
+        opened={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        title="Find a Recipe Online"
+        size="xl"
+      >
+        <RecipeImportSearch embedded />
+      </Modal>
 
       <RecipeAvailabilityModal
         recipe={availabilityRecipe}
