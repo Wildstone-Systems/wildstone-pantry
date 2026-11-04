@@ -843,6 +843,10 @@ def recipe_nutrition(db: Session, recipe_id: UUID) -> dict:
     if not recipe:
         raise LookupError("Recipe not found")
 
+    override = _override_result(recipe)
+    if override is not None:
+        return override
+
     rows = db.execute(
         select(RecipeIngredient, Item)
         .join(Item, RecipeIngredient.item_id == Item.id)
@@ -850,7 +854,7 @@ def recipe_nutrition(db: Session, recipe_id: UUID) -> dict:
         .order_by(Item.name.asc())
     ).all()
 
-    keys = ("calories", "protein_g", "fat_g", "carbs_g")
+    keys = _NUTRIENT_KEYS
     total = {k: Decimal("0") for k in keys}
     contributed = {k: False for k in keys}
     unresolved: list[dict] = []
@@ -902,7 +906,76 @@ def recipe_nutrition(db: Session, recipe_id: UUID) -> dict:
         "per_serving": _out(total, servings),
         "unresolved": unresolved,
         "complete": len(unresolved) == 0,
+        "basis": "ingredient_derived",
+        "provenance": None,
     }
+
+
+_NUTRIENT_KEYS = ("calories", "protein_g", "fat_g", "carbs_g")
+
+
+def _override_values(recipe: Recipe) -> dict[str, Decimal] | None:
+    """The stored per-serving override, or None unless ALL four values and the
+    provenance are present (a half-set row never masquerades as complete)."""
+    values = {k: getattr(recipe, f"nutrition_override_{k}") for k in _NUTRIENT_KEYS}
+    if any(v is None for v in values.values()) or not recipe.nutrition_override_source:
+        return None
+    return {k: Decimal(v) for k, v in values.items()}
+
+
+def _override_result(recipe: Recipe) -> dict | None:
+    values = _override_values(recipe)
+    if values is None:
+        return None
+    servings = recipe.servings or 1
+    cents = Decimal("0.01")
+    return {
+        "recipe_id": recipe.id,
+        "servings": servings,
+        "total": {k: float((v * servings).quantize(cents)) for k, v in values.items()},
+        "per_serving": {k: float(v.quantize(cents)) for k, v in values.items()},
+        "unresolved": [],
+        "complete": True,
+        "basis": "source_override",
+        "provenance": recipe.nutrition_override_source,
+    }
+
+
+def set_nutrition_override(
+    db: Session,
+    recipe_id: UUID,
+    *,
+    calories: Decimal,
+    protein_g: Decimal,
+    fat_g: Decimal,
+    carbs_g: Decimal,
+    source: str,
+) -> dict:
+    """Create or replace a recipe's source-published per-serving nutrition.
+    Values are validated at the schema boundary; returns the new nutrition read."""
+    recipe = get_recipe(db, recipe_id)
+    if not recipe:
+        raise LookupError("Recipe not found")
+    recipe.nutrition_override_calories = calories
+    recipe.nutrition_override_protein_g = protein_g
+    recipe.nutrition_override_fat_g = fat_g
+    recipe.nutrition_override_carbs_g = carbs_g
+    recipe.nutrition_override_source = source
+    db.commit()
+    db.refresh(recipe)
+    return recipe_nutrition(db, recipe_id)
+
+
+def clear_nutrition_override(db: Session, recipe_id: UUID) -> dict:
+    """Remove the override; nutrition falls back to the ingredient-derived rollup."""
+    recipe = get_recipe(db, recipe_id)
+    if not recipe:
+        raise LookupError("Recipe not found")
+    for k in _NUTRIENT_KEYS:
+        setattr(recipe, f"nutrition_override_{k}", None)
+    recipe.nutrition_override_source = None
+    db.commit()
+    return recipe_nutrition(db, recipe_id)
 
 
 def _identity_pool_item_ids(db: Session, item_id: UUID) -> list[UUID]:

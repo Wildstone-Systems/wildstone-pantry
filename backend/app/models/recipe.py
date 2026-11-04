@@ -66,6 +66,15 @@ class Recipe(Base):
     # surfaces until Finish promotes it (flag cleared) or discards it (row
     # deleted). Direct by-id access deliberately still works — the capture UI
     # is built from the same endpoints as the recipe editor.
+    # Source-published nutrition for ONE serving of the finished recipe (issue #51).
+    # All four values plus provenance are set together or all null; when set they
+    # take precedence over the ingredient-derived rollup. Precision is mirrored by
+    # NUTRITION_OVERRIDE_* bounds in the planning schema so oversize input is a 422.
+    nutrition_override_calories: Mapped[Decimal | None] = mapped_column(Numeric(9, 2), nullable=True)
+    nutrition_override_protein_g: Mapped[Decimal | None] = mapped_column(Numeric(9, 2), nullable=True)
+    nutrition_override_fat_g: Mapped[Decimal | None] = mapped_column(Numeric(9, 2), nullable=True)
+    nutrition_override_carbs_g: Mapped[Decimal | None] = mapped_column(Numeric(9, 2), nullable=True)
+    nutrition_override_source: Mapped[str | None] = mapped_column(String(200), nullable=True)
     is_draft: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=func.false(), default=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

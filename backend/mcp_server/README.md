@@ -82,6 +82,15 @@ Recipe authoring/import: `preview_recipe`, `create_recipe`,
 `parse_recipe_text` → `ingest_recipe` (pasted text, or text the agent extracted
 from a recipe web page), `search_external_recipes` → `get_external_recipe`.
 
+Recipe nutrition: `recipe_nutrition` (result carries `basis` —
+`"ingredient_derived"` or `"source_override"` — and `provenance`),
+`set_recipe_nutrition_override(recipe_id, calories, protein_g, fat_g, carbs_g,
+source)` and `clear_recipe_nutrition_override(recipe_id)`. These call
+`PUT`/`DELETE /api/recipes/{id}/nutrition-override`, which need a write-scoped
+agent key (a read-only key gets 403). Values are per ONE serving: calories > 0,
+macros >= 0, ≤ 2 decimals, ≤ 9,999,999.99; `source` 1–200 chars. Totals =
+per-serving × recipe servings.
+
 Meal plan: `list_meal_plan`, `plan_meal`, `update_planned_meal`,
 `remove_planned_meal`, `mark_planned_meal`, `meal_plan_shopping_gap`,
 `push_meal_plan_gap`.
