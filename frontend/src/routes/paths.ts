@@ -20,6 +20,7 @@ export const ROUTES = {
   recipesCook: "/recipes/:recipeId/cook",
   cook: "/cook",
   cookSession: "/cook/:recipeId",
+  mealPlan: "/meal-plan",
   logMeal: "/log-meal",
   calories: "/calories",
   insights: "/insights",
