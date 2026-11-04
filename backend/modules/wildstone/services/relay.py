@@ -14,7 +14,8 @@ Sources, all read through other modules' published services:
 * restock thresholds — ``stock_low`` fires on the crossing only;
 * expiring lots — checked each pass, one event per lot and date;
 * the grocery list — one event per settled change, with only a count;
-* kitchen timers — each one that went off, once (ADR 0026 §6.1).
+* kitchen timers — each one that went off, once (ADR 0026 §6.1);
+* the meal plan — one event per settled change, with only a count (#33).
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from modules.inventory.services.feed import events_after, late_events
+from modules.mealplan.services import plan_state
 from modules.planning.services.cook_timers import timers_ended_between
 from modules.planning.services.insights import list_expiring_items
 from modules.planning.services.recipes import cook_events_since
@@ -171,6 +173,30 @@ def _list_envelopes(db: Session, state, now: datetime, quiet: timedelta) -> list
     return [(changed_at, env)]
 
 
+def _meal_plan_envelopes(db: Session, state, now: datetime, today: date, quiet: timedelta) -> list[tuple[datetime, dict]]:
+    """``pantry.meal_plan_changed`` once the plan has settled into a state
+    other than the one last reported — the grocery list's rule, applied to
+    the meal plan. Connecting takes the plan as it stands: not news."""
+    current = plan_state(db, today=today)
+    fingerprint = current["fingerprint"]
+    if state.meal_plan_fingerprint is None:
+        state.meal_plan_fingerprint = fingerprint
+        return []
+    if fingerprint == state.meal_plan_fingerprint:
+        return []
+    if current["changed_at"] is None:
+        changed_at = now  # the last entry was removed: nothing more to wait for
+    else:
+        changed_at = _as_utc(current["changed_at"])
+        if quiet and now - changed_at < quiet:
+            return []  # still being edited (or an agent is drafting): wait
+    env = envelopes.meal_plan_changed(
+        before=state.meal_plan_fingerprint, after=fingerprint, upcoming=current["upcoming"], changed_at=changed_at
+    )
+    state.meal_plan_fingerprint = fingerprint
+    return [(changed_at, env)]
+
+
 def _stock_envelopes(db: Session, now: datetime, at_seq: int) -> list[dict]:
     below = {item["item_id"]: item for item in items_below_threshold(db)}
     flags = repository.stock_flags(db)
@@ -285,6 +311,7 @@ def run_pass(
 
     queued.extend((now, env) for env in _stock_envelopes(db, now, state.ledger_seq))
     queued.extend(_list_envelopes(db, state, now, list_quiet))
+    queued.extend(_meal_plan_envelopes(db, state, now, today, list_quiet))
 
     # Checked every pass (a lot bought today can expire in two days); the
     # lot + date event id is what makes it once per lot.

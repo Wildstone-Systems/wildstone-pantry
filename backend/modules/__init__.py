@@ -12,6 +12,7 @@ from modules.agent import manifest as _agent_manifest  # noqa: F401
 from modules.automation import manifest as _automation_manifest  # noqa: F401
 from modules.catalog import manifest as _catalog_manifest  # noqa: F401
 from modules.inventory import manifest as _inventory_manifest  # noqa: F401
+from modules.mealplan import manifest as _mealplan_manifest  # noqa: F401
 from modules.planning import manifest as _planning_manifest  # noqa: F401
 from modules.shopping import manifest as _shopping_manifest  # noqa: F401
 from modules.wildstone import manifest as _wildstone_manifest  # noqa: F401

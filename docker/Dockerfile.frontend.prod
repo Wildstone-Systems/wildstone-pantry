@@ -1,0 +1,25 @@
+# Production-style frontend: build once with Vite, serve static files with nginx.
+#
+# The dev image (Dockerfile.frontend) runs the Vite dev server, which sends
+# hundreds of unbundled, uncompressed modules (~13-19 MB cold). Over a
+# high-latency link (e.g. a VPN/overlay network) that is dominated by round
+# trips and is very slow. This image serves the bundled build (~0.75 MB gzip).
+FROM node:26-alpine AS build
+
+WORKDIR /app
+
+COPY frontend/package*.json /app/
+RUN npm ci
+
+COPY frontend /app
+RUN npm run build
+
+FROM nginx:1.27-alpine
+
+COPY docker/nginx.frontend.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1/ || exit 1

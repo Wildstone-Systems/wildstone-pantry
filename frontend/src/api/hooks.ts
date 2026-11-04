@@ -309,6 +309,8 @@ export function useRecipes() {
 export type RecipeSuggestion = {
   recipe_id: string;
   recipe_name: string;
+  /** Uploaded photo, else imported picture URL, else null. */
+  image_src?: string | null;
   available_score: number;
   missing_items: string[];
 };
@@ -390,6 +392,8 @@ export type ExpiringItem = {
   item_name: string;
   expiration_date: string;
   days_until_expiration: number;
+  /** Where the lot lives — set on household-wide (all locations) responses. */
+  location_id?: string | null;
 };
 
 export type ExpiringResponse = { location_id: string; expiring_items: ExpiringItem[] };

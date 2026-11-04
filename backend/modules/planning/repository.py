@@ -131,6 +131,10 @@ def timers_ending_in(db: Session, *, start: datetime, end: datetime) -> list[Coo
 # --- cook records (the integration feed) ------------------------------------------
 
 
+def get_cook_event(db: Session, cook_event_id: UUID) -> RecipeCookEvent | None:
+    return db.get(RecipeCookEvent, cook_event_id)
+
+
 def cook_events_with_recipe_since(db: Session, *, since: datetime, limit: int) -> list[tuple[RecipeCookEvent, str]]:
     """Cooks recorded at or after ``since`` with their recipe's name, oldest first."""
     rows = db.execute(

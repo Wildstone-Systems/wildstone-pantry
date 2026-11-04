@@ -193,6 +193,8 @@ export type RecipeWithIngredients = {
 export type RecipeSuggestion = {
   recipe_id: string;
   recipe_name: string;
+  /** Uploaded photo, else imported picture URL, else null. */
+  image_src?: string | null;
   available_score: number;
   missing_items: string[];
 };
