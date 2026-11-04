@@ -216,9 +216,9 @@ function posted(url: string): Record<string, unknown> | undefined {
   return call?.[1] as Record<string, unknown> | undefined;
 }
 
-async function openPage() {
+async function openPage(path = "/recipes/r1/cook") {
   const { CookAlongPage } = await import("./CookAlongPage");
-  renderWithProviders(<CookAlongPage />, { initialEntries: ["/recipes/r1/cook"] });
+  renderWithProviders(<CookAlongPage />, { initialEntries: [path] });
   await screen.findByText("Flatbread");
 }
 
@@ -434,6 +434,54 @@ describe("CookAlongPage", () => {
       await user.click(await screen.findByRole("button", { name: "Finish" }));
       await screen.findByText("How did it turn out?");
     };
+
+    it("cooking from the meal plan uses the meal's servings and marks it cooked", async () => {
+      const user = userEvent.setup();
+      await openPage("/recipes/r1/cook?servings=2&planEntry=e1");
+      expect(await screen.findByLabelText("How many servings are you making?")).toHaveValue("2");
+      await user.click(screen.getByRole("button", { name: "Start cooking" }));
+      await user.click(await screen.findByRole("button", { name: "Done, next" }));
+      await user.click(await screen.findByRole("button", { name: "Finish" }));
+      await user.click(await screen.findByRole("button", { name: "Log it" }));
+
+      await waitFor(() => expect(posted("/api/meal-plan/entries/e1/cooked")).toEqual({ cook_event_id: "c1" }));
+      expect(navigate).toHaveBeenCalledWith("/meal-plan");
+    });
+
+    it("an unplanned cook asks before linking a meal planned today", async () => {
+      const serve = apiGet.getMockImplementation()!;
+      apiGet.mockImplementation(async (url: string, ...rest: unknown[]) =>
+        url === "/api/meal-plan/cook-candidates"
+          ? { data: [{ id: "e7", plan_date: "2026-11-03", meal_type: "dinner", servings: 4, recipe_id: "r1" }] }
+          : serve(url, ...rest),
+      );
+      const user = userEvent.setup();
+      await walkToFinish(user);
+      await user.click(screen.getByRole("button", { name: "Log it" }));
+
+      expect(await screen.findByText("Was this Tuesday's dinner?")).toBeInTheDocument();
+      // Nothing is linked until the person says so.
+      expect(posted("/api/meal-plan/entries/e7/cooked")).toBeUndefined();
+      await user.click(screen.getByRole("button", { name: "Yes, Tuesday's dinner" }));
+      await waitFor(() => expect(posted("/api/meal-plan/entries/e7/cooked")).toEqual({ cook_event_id: "c1" }));
+      expect(navigate).toHaveBeenCalledWith("/recipes/r1");
+    });
+
+    it("answering no leaves the plan alone", async () => {
+      const serve = apiGet.getMockImplementation()!;
+      apiGet.mockImplementation(async (url: string, ...rest: unknown[]) =>
+        url === "/api/meal-plan/cook-candidates"
+          ? { data: [{ id: "e7", plan_date: "2026-11-03", meal_type: "dinner", servings: 4, recipe_id: "r1" }] }
+          : serve(url, ...rest),
+      );
+      const user = userEvent.setup();
+      await walkToFinish(user);
+      await user.click(screen.getByRole("button", { name: "Log it" }));
+
+      await user.click(await screen.findByRole("button", { name: "No, it wasn't planned" }));
+      expect(posted("/api/meal-plan/entries/e7/cooked")).toBeUndefined();
+      expect(navigate).toHaveBeenCalledWith("/recipes/r1");
+    });
 
     it("finishes the session with the weighed yield in grams", async () => {
       const user = userEvent.setup();

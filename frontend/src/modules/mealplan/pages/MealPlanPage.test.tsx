@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "@/test-utils";
 
-import { addDays, buildRecipeOptions, completenessLabel, sundayOf, todayLocal } from "../hooks/mealplan-hooks";
+import { addDays, buildRecipeOptions, completenessLabel, cookFromPlanPath, sundayOf, todayLocal } from "../hooks/mealplan-hooks";
 
 const apiGet = vi.fn();
 const apiPost = vi.fn();
@@ -69,6 +69,12 @@ function completeness(recipe_id: string, have: number, needed: number, missing: 
     missing_items: missing,
   };
 }
+
+describe("cook from plan", () => {
+  it("opens the cook-along with the meal's servings and id", () => {
+    expect(cookFromPlanPath({ id: "e1", recipe_id: "r1", servings: 6 })).toBe("/recipes/r1/cook?servings=6&planEntry=e1");
+  });
+});
 
 describe("recipe completeness", () => {
   const recipes = [
@@ -193,6 +199,20 @@ describe("MealPlanPage", () => {
     // Shown beside the chosen recipe (and again on its dropdown option).
     expect(screen.getAllByText("3/4 on hand").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Mostly complete only")).toBeInTheDocument();
+  });
+
+  it("offers Cook this on a planned recipe meal, not on free text", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Baked Turkey" }));
+    expect(await screen.findByRole("button", { name: "Cook this (6 servings)" })).toBeInTheDocument();
+    cleanup();
+
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Protein shake" }));
+    await screen.findByRole("button", { name: "Save" });
+    expect(screen.queryByRole("button", { name: /Cook this/ })).not.toBeInTheDocument();
   });
 
   it("skips a planned meal from its editor", async () => {

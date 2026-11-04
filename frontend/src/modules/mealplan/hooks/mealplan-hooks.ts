@@ -248,3 +248,30 @@ export function formatAmount(value: string | number | null, unit: string): strin
   const n = Number(value);
   return `${Number.isNaN(n) ? value : Number(n.toFixed(2))} ${unit}`;
 }
+
+// --- cook from plan (#32) -------------------------------------------------------
+
+/** Where "Cook this" on a planned meal goes: the existing cook-along, sized
+ *  to the meal's pinned servings, remembering which meal it is for. */
+export function cookFromPlanPath(entry: Pick<MealPlanEntry, "id" | "recipe_id" | "servings">): string {
+  const params = new URLSearchParams({ servings: String(entry.servings), planEntry: entry.id });
+  return `/recipes/${entry.recipe_id}/cook?${params.toString()}`;
+}
+
+/** Record which finished cook fulfilled a planned meal. */
+export function useMarkMealCooked() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (p: { entryId: string; cookEventId: string }) =>
+      (await api.post<MealPlanEntry>(`/api/meal-plan/entries/${p.entryId}/cooked`, { cook_event_id: p.cookEventId }))
+        .data,
+    onSuccess: invalidate,
+  });
+}
+
+/** Planned, uncooked meals of this recipe on `day`: what "Was this Sunday's
+ *  dinner?" offers after a cook that didn't start from the plan. */
+export async function fetchCookCandidates(recipeId: string, day: string): Promise<MealPlanEntry[]> {
+  const res = await api.get<MealPlanEntry[]>("/api/meal-plan/cook-candidates", { params: { recipe_id: recipeId, on: day } });
+  return res.data;
+}

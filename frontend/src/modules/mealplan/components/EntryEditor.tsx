@@ -14,7 +14,9 @@ import {
   Textarea,
   type ComboboxItem,
 } from "@mantine/core";
+import { ChefHat } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { getApiErrorMessage } from "@/api/errors";
 import { useHouseholdProfiles, useItems, useRecipes } from "@/api/hooks";
@@ -22,6 +24,7 @@ import { useHouseholdProfiles, useItems, useRecipes } from "@/api/hooks";
 import {
   MEAL_TYPES,
   MOSTLY_COMPLETE,
+  cookFromPlanPath,
   buildRecipeOptions,
   completenessLabel,
   useRecipeCompleteness,
@@ -69,6 +72,7 @@ export function EntryEditor({
   dayOptions: { value: string; label: string }[];
   onClose: () => void;
 }) {
+  const navigate = useNavigate();
   const recipes = useRecipes();
   const completeness = useRecipeCompleteness();
   const [mostlyCompleteOnly, setMostlyCompleteOnly] = useState(false);
@@ -284,6 +288,22 @@ export function EntryEditor({
           <Select label="For" data={profileOptions} value={forWho} onChange={(v) => setForWho(v ?? EVERYONE)} />
         </Group>
         <Textarea label="Note" autosize minRows={1} value={note} onChange={(e) => setNote(e.currentTarget.value)} />
+
+        {editing && editing.kind === "recipe" && editing.recipe_id && editing.status === "planned" && (
+          <Button
+            variant="light"
+            leftSection={<ChefHat size={16} />}
+            disabled={busy}
+            onClick={() => navigate(cookFromPlanPath(editing))}
+          >
+            Cook this ({editing.servings} servings)
+          </Button>
+        )}
+        {editing?.status === "cooked" && (
+          <Text size="xs" c="dimmed">
+            Cooked. &ldquo;Back to planned&rdquo; unlinks the cook but doesn&rsquo;t put any stock back.
+          </Text>
+        )}
 
         <Group justify="space-between" mt="xs">
           {editing ? (

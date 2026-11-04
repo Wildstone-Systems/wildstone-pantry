@@ -85,6 +85,7 @@ GET /api/items/{item_id}/structured-evidence
 GET /api/items/{item_id}/usage
 GET /api/locations
 GET /api/locations/{location_id}
+GET /api/meal-plan/cook-candidates
 GET /api/meal-plan/entries
 GET /api/meal-plan/entries/{entry_id}
 GET /api/meal-plan/excluded-items
@@ -207,6 +208,7 @@ POST /api/items/{item_id}/rescan
 POST /api/items/{item_id}/restore
 POST /api/locations
 POST /api/meal-plan/entries
+POST /api/meal-plan/entries/{entry_id}/cooked
 POST /api/meal-plan/entries/{entry_id}/reset
 POST /api/meal-plan/entries/{entry_id}/skip
 POST /api/meal-plan/excluded-items

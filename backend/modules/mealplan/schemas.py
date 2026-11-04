@@ -71,6 +71,12 @@ class MealPlanEntryRead(BaseModel):
     updated_at: datetime
 
 
+class MealPlanEntryCooked(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    cook_event_id: UUID
+
+
 class MealPlanWeek(BaseModel):
     start: date
     days: int

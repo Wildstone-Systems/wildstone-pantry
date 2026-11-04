@@ -5,7 +5,7 @@ Rules this enforces:
 - Recipe/item entries show the live name (they follow edits). ``title`` keeps
   the name as of the last write, so a deleted recipe/item still reads sensibly.
 - Servings are pinned on the entry (default: the recipe's servings, else 1).
-- ``planned ⇄ skipped``; ``cooked`` arrives with cook-from-plan (#32).
+- ``planned ⇄ skipped``; ``cooked`` only by linking a real cook (#32).
 - Nothing reserves stock, and nothing auto-skips or rolls forward.
 """
 
@@ -22,7 +22,7 @@ from modules.catalog.services.items import get_item
 from modules.mealplan import repository
 from modules.mealplan.models import MealPlanEntry
 from modules.mealplan.schemas import MealPlanEntryCreate, MealPlanEntryUpdate
-from modules.planning.services.recipes import get_recipe
+from modules.planning.services.recipes import get_cook_event, get_recipe
 
 logger = logging.getLogger(__name__)
 
@@ -252,3 +252,41 @@ def reset(db: Session, entry_id: UUID) -> dict:
     db.commit()
     db.refresh(entry)
     return to_read(db, entry)
+
+
+# --- cook from plan (#32) -------------------------------------------------------
+
+
+def mark_cooked(db: Session, entry_id: UUID, *, cook_event_id: UUID) -> dict:
+    """Link a finished cook to a planned recipe meal and mark it ``cooked``.
+
+    Cooking itself always goes through the cook-along; this only records which
+    cook fulfilled the plan. The cook must be of the entry's recipe. Linking
+    the same cook again is a no-op, so a retried request is safe.
+    """
+    entry = _require(db, entry_id)
+    if entry.recipe_id is None:
+        raise MealPlanStateError("only a recipe meal can be cooked from the plan")
+    cook = get_cook_event(db, cook_event_id)
+    if cook is None:
+        raise MealPlanInputError("no cook with that cook_event_id")
+    if cook["recipe_id"] != entry.recipe_id:
+        raise MealPlanInputError("that cook was of a different recipe")
+    if entry.status == "cooked":
+        if entry.cook_event_id == cook_event_id:
+            return to_read(db, entry)
+        raise MealPlanStateError("this meal is already marked cooked by another cook")
+    entry.status = "cooked"
+    entry.cook_event_id = cook_event_id
+    db.commit()
+    db.refresh(entry)
+    logger.info("meal plan entry %s cooked (cook %s)", entry.id, cook_event_id)
+    return to_read(db, entry)
+
+
+def cook_candidates(db: Session, *, recipe_id: UUID, on: date) -> list[dict]:
+    """Planned, uncooked meals of ``recipe_id`` on ``on``: what to offer in
+    "Was this Sunday's dinner?" after a cook that didn't start from the plan."""
+    entries = repository.list_entries(db, start=on, end=on + timedelta(days=1))
+    cache: dict = {}
+    return [to_read(db, e, cache) for e in entries if e.recipe_id == recipe_id and e.status == "planned"]
