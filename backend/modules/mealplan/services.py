@@ -210,6 +210,13 @@ def update(db: Session, entry_id: UUID, payload: MealPlanEntryUpdate) -> dict:
             title=meal_changes.get("title"),
         )
         meal.pop("_recipe", None)
+        same_meal = (meal["recipe_id"], meal["item_id"]) == (entry.recipe_id, entry.item_id) and (
+            meal["recipe_id"] or meal["item_id"] or meal["title"] == entry.title
+        )
+        if entry.status == "cooked" and not same_meal:
+            # The cook was of the old meal: it no longer fulfils this one.
+            entry.status = "planned"
+            entry.cook_event_id = None
         for column, value in meal.items():
             setattr(entry, column, value)
 

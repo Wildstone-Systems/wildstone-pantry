@@ -95,6 +95,9 @@ export function CookAlongPage() {
   const plannedServings = Number(searchParams.get("servings")) || null;
   const markMealCooked = useMarkMealCooked();
   const [planPrompt, setPlanPrompt] = useState<{ cookEventId: string; candidates: MealPlanEntry[] } | null>(null);
+  // The cook is done but linking it to the planned meal failed: keep the cook
+  // id so the link alone can be retried, without cooking (or deducting) again.
+  const [planLinkFailed, setPlanLinkFailed] = useState<{ entryId: string; cookEventId: string } | null>(null);
 
   const recipeQuery = useQuery({
     queryKey: ["recipe", recipeId],
@@ -318,6 +321,16 @@ export function CookAlongPage() {
     }
   };
 
+  const linkPlannedMeal = async (entryId: string, cookEventId: string) => {
+    try {
+      await markMealCooked.mutateAsync({ entryId, cookEventId });
+      setPlanLinkFailed(null);
+      navigate(ROUTES.mealPlan);
+    } catch {
+      setPlanLinkFailed({ entryId, cookEventId });
+    }
+  };
+
   /** Tie the finished cook to the meal plan (#32). Started from the plan → mark
    *  that meal cooked. Otherwise, if this recipe is planned today, ask first;
    *  never link without the person saying so. The cook itself is already done,
@@ -328,12 +341,7 @@ export function CookAlongPage() {
       return;
     }
     if (planEntryId) {
-      try {
-        await markMealCooked.mutateAsync({ entryId: planEntryId, cookEventId });
-      } catch {
-        setStatus("Cooked, but the meal plan couldn't be updated; mark it there");
-      }
-      navigate(ROUTES.mealPlan);
+      await linkPlannedMeal(planEntryId, cookEventId);
       return;
     }
     let candidates: MealPlanEntry[] = [];
@@ -747,6 +755,25 @@ export function CookAlongPage() {
             the steps and set timers too.
           </Text>
         </>
+      )}
+      {planLinkFailed && (
+        <Alert color="yellow" title="Cooked, but not marked on the meal plan">
+          <Stack gap="xs">
+            <Text size="sm">The cook is saved. Only the meal plan update failed.</Text>
+            <Group gap="xs">
+              <Button
+                size="xs"
+                loading={markMealCooked.isPending}
+                onClick={() => linkPlannedMeal(planLinkFailed.entryId, planLinkFailed.cookEventId)}
+              >
+                Try again
+              </Button>
+              <Button size="xs" variant="default" onClick={() => navigate(`/recipes/${recipeId}`)}>
+                Skip
+              </Button>
+            </Group>
+          </Stack>
+        </Alert>
       )}
       {planPrompt && (
         <PlannedCookPrompt

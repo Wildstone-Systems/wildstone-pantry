@@ -448,6 +448,28 @@ describe("CookAlongPage", () => {
       expect(navigate).toHaveBeenCalledWith("/meal-plan");
     });
 
+    it("if marking the meal fails, retries the link alone without cooking again", async () => {
+      const serve = apiPost.getMockImplementation()!;
+      let failures = 1;
+      apiPost.mockImplementation(async (url: string, ...rest: unknown[]) => {
+        if (url === "/api/meal-plan/entries/e1/cooked" && failures-- > 0) throw new Error("network");
+        return serve(url, ...rest);
+      });
+      const user = userEvent.setup();
+      await openPage("/recipes/r1/cook?servings=2&planEntry=e1");
+      await user.click(await screen.findByRole("button", { name: "Start cooking" }));
+      await user.click(await screen.findByRole("button", { name: "Done, next" }));
+      await user.click(await screen.findByRole("button", { name: "Finish" }));
+      await user.click(await screen.findByRole("button", { name: "Log it" }));
+
+      expect(await screen.findByText("Cooked, but not marked on the meal plan")).toBeInTheDocument();
+      expect(navigate).not.toHaveBeenCalledWith("/meal-plan");
+      await user.click(screen.getByRole("button", { name: "Try again" }));
+      await waitFor(() => expect(navigate).toHaveBeenCalledWith("/meal-plan"));
+      const finishes = apiPost.mock.calls.filter((c) => c[0] === "/api/cook-sessions/s1/finish");
+      expect(finishes).toHaveLength(1); // the cook happened once
+    });
+
     it("an unplanned cook asks before linking a meal planned today", async () => {
       const serve = apiGet.getMockImplementation()!;
       apiGet.mockImplementation(async (url: string, ...rest: unknown[]) =>
