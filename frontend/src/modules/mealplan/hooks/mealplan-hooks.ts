@@ -183,3 +183,68 @@ export function completenessLabel(c: RecipeCompleteness | null): string | null {
   if (!c || c.needed_count === 0) return null;
   return `${c.have_count}/${c.needed_count} on hand`;
 }
+
+// --- shopping bridge (#31) ------------------------------------------------------
+
+export type ShoppingGapLine = {
+  /** canon:<ingredient> or item:<item id> */
+  key: string;
+  label: string;
+  unit: string;
+  needed: string | number;
+  on_hand: string | number | null;
+  /** null when the amount can't be measured: check by hand. */
+  to_buy: string | number | null;
+  status: "short" | "check";
+  meals: string[];
+};
+
+export type ExcludedItem = { id: string; key: string; label: string };
+
+export type ShoppingGap = { start: string; end: string; lines: ShoppingGapLine[]; excluded: ExcludedItem[] };
+
+export type ShoppingGapPushResult = { added: string[]; already_on_list: string[] };
+
+export function useShoppingGap(start: string, today: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...KEY, "shopping-gap", start, today],
+    enabled,
+    queryFn: async () =>
+      (await api.get<ShoppingGap>("/api/meal-plan/shopping-gap", { params: { start, today, days: 7 } })).data,
+  });
+}
+
+export function usePushShoppingGap() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { start: string; today: string; keys: string[] }) =>
+      (await api.post<ShoppingGapPushResult>("/api/meal-plan/shopping-gap/push", { ...body, days: 7 })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["shopping-list"] }),
+  });
+}
+
+export function useExcludeItem() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (body: { key: string; label: string }) =>
+      (await api.post<ExcludedItem>("/api/meal-plan/excluded-items", body)).data,
+    onSuccess: invalidate,
+  });
+}
+
+export function useUnexcludeItem() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/api/meal-plan/excluded-items/${id}`);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** "3 cup", "2 each" — trims trailing zeros from decimal strings. */
+export function formatAmount(value: string | number | null, unit: string): string {
+  if (value == null) return "?";
+  const n = Number(value);
+  return `${Number.isNaN(n) ? value : Number(n.toFixed(2))} ${unit}`;
+}

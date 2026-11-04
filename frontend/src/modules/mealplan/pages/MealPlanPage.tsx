@@ -1,11 +1,12 @@
 import { ActionIcon, Alert, Badge, Button, Card, Group, Loader, SimpleGrid, Stack, Text, Title, UnstyledButton } from "@mantine/core";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, ShoppingCart } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { getApiErrorMessage } from "@/api/errors";
 import { useHouseholdProfiles } from "@/api/hooks";
 
 import { EntryEditor, type EditorTarget } from "../components/EntryEditor";
+import { ShoppingGapModal } from "../components/ShoppingGapModal";
 import {
   MEAL_TYPES,
   addDays,
@@ -66,6 +67,9 @@ export function MealPlanPage() {
   const week = useMealPlanWeek(start);
   const profiles = useHouseholdProfiles();
   const [target, setTarget] = useState<EditorTarget | null>(null);
+  const [shoppingOpen, setShoppingOpen] = useState(false);
+  // A week that has fully passed has nothing left to shop for.
+  const weekIsPast = addDays(start, 6) < today;
 
   const days = useMemo(() => weekDays(start), [start]);
   const dayOptions = useMemo(
@@ -104,6 +108,15 @@ export function MealPlanPage() {
               This week
             </Button>
           )}
+          <Button
+            size="xs"
+            variant="light"
+            leftSection={<ShoppingCart size={14} />}
+            disabled={weekIsPast}
+            onClick={() => setShoppingOpen(true)}
+          >
+            Shopping
+          </Button>
         </Group>
       </Group>
 
@@ -165,6 +178,7 @@ export function MealPlanPage() {
       </SimpleGrid>
 
       <EntryEditor target={target} dayOptions={dayOptions} onClose={() => setTarget(null)} />
+      <ShoppingGapModal opened={shoppingOpen} start={start} today={today} onClose={() => setShoppingOpen(false)} />
     </Stack>
   );
 }

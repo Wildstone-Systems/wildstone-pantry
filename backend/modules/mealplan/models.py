@@ -70,3 +70,18 @@ class MealPlanEntry(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
+
+
+class MealPlanExcludedItem(Base):
+    """An ingredient the shopping bridge always skips (staples: salt, oil…), #31.
+
+    ``key`` is ``canon:<canonical ingredient>`` when the ingredient has one (so
+    every brand of salt is skipped) or ``item:<item id>`` otherwise.
+    """
+
+    __tablename__ = "meal_plan_excluded_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    key: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    label: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

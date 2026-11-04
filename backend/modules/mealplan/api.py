@@ -15,8 +15,18 @@ from sqlalchemy.orm import Session
 
 from app.core.security import allow_kiosk, resolve_actor
 from app.db import get_db
-from modules.mealplan import services
-from modules.mealplan.schemas import MealPlanEntryCreate, MealPlanEntryRead, MealPlanEntryUpdate, MealPlanWeek
+from modules.mealplan import services, shopping_gap
+from modules.mealplan.schemas import (
+    ExcludedItemCreate,
+    ExcludedItemRead,
+    MealPlanEntryCreate,
+    MealPlanEntryRead,
+    MealPlanEntryUpdate,
+    MealPlanWeek,
+    ShoppingGap,
+    ShoppingGapPush,
+    ShoppingGapPushResult,
+)
 
 router = APIRouter(prefix="/meal-plan", tags=["meal-plan"], dependencies=[Depends(allow_kiosk)])
 
@@ -30,7 +40,7 @@ def _run(db: Session, fn, *args, **kwargs):
     except services.MealPlanStateError as exc:
         db.rollback()
         raise HTTPException(409, str(exc)) from exc
-    except services.MealPlanInputError as exc:
+    except (services.MealPlanInputError, shopping_gap.ShoppingGapInputError) as exc:
         db.rollback()
         raise HTTPException(422, str(exc)) from exc
 
@@ -81,3 +91,39 @@ def skip_entry(entry_id: UUID, db: Session = Depends(get_db)):
 @router.post("/entries/{entry_id}/reset", response_model=MealPlanEntryRead)
 def reset_entry(entry_id: UUID, db: Session = Depends(get_db)):
     return _run(db, services.reset, entry_id)
+
+
+# --- shopping bridge (#31) -------------------------------------------------------
+
+
+@router.get("/shopping-gap", response_model=ShoppingGap)
+def get_shopping_gap(
+    start: date = Query(..., description="First day of the week shown (YYYY-MM-DD)"),
+    today: date = Query(..., description="The viewer's local today; earlier days are ignored"),
+    days: int = Query(7, ge=1, le=services.MAX_DAYS),
+    db: Session = Depends(get_db),
+):
+    return _run(db, shopping_gap.compute, start=start, days=days, today=today)
+
+
+@router.post("/shopping-gap/push", response_model=ShoppingGapPushResult)
+def push_shopping_gap(payload: ShoppingGapPush, db: Session = Depends(get_db)):
+    return _run(
+        db, shopping_gap.push, start=payload.start, days=payload.days, today=payload.today, keys=payload.keys
+    )
+
+
+@router.get("/excluded-items", response_model=list[ExcludedItemRead])
+def list_excluded_items(db: Session = Depends(get_db)):
+    return _run(db, shopping_gap.list_excluded)
+
+
+@router.post("/excluded-items", response_model=ExcludedItemRead, status_code=201)
+def add_excluded_item(payload: ExcludedItemCreate, db: Session = Depends(get_db)):
+    return _run(db, shopping_gap.exclude, key=payload.key, label=payload.label)
+
+
+@router.delete("/excluded-items/{excluded_id}", status_code=204)
+def remove_excluded_item(excluded_id: UUID, db: Session = Depends(get_db)):
+    _run(db, shopping_gap.unexclude, excluded_id)
+    return Response(status_code=204)

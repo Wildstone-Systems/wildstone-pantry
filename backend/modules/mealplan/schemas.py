@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -74,3 +75,54 @@ class MealPlanWeek(BaseModel):
     start: date
     days: int
     entries: list[MealPlanEntryRead]
+
+
+# --- shopping bridge (#31) -------------------------------------------------------
+
+
+class ShoppingGapLine(BaseModel):
+    # canon:<ingredient> or item:<item id>; what "always skip" and push refer to.
+    key: str
+    label: str
+    unit: str
+    needed: Decimal
+    on_hand: Decimal | None
+    # None when the amount can't be measured (no unit bridge): check by hand.
+    to_buy: Decimal | None
+    status: Literal["short", "check"]
+    meals: list[str]
+
+
+class ExcludedItemRead(BaseModel):
+    id: UUID
+    key: str
+    label: str
+
+
+class ShoppingGap(BaseModel):
+    # The window actually used: today onward, inside the requested week.
+    start: date
+    end: date
+    lines: list[ShoppingGapLine]
+    excluded: list[ExcludedItemRead]
+
+
+class ShoppingGapPush(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    start: date
+    days: int = Field(default=7, ge=1, le=42)
+    today: date
+    keys: list[str] = Field(default_factory=list, max_length=500)
+
+
+class ShoppingGapPushResult(BaseModel):
+    added: list[str]
+    already_on_list: list[str]
+
+
+class ExcludedItemCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    key: str = Field(max_length=200)
+    label: str = Field(max_length=200)

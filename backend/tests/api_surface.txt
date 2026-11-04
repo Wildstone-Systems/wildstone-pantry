@@ -14,6 +14,7 @@ DELETE /api/items/{item_id}
 DELETE /api/items/{item_id}/purge
 DELETE /api/locations/{location_id}
 DELETE /api/meal-plan/entries/{entry_id}
+DELETE /api/meal-plan/excluded-items/{excluded_id}
 DELETE /api/recipes/{recipe_id}
 DELETE /api/recipes/{recipe_id}/image
 DELETE /api/shopping-list/{entry_id}
@@ -86,6 +87,8 @@ GET /api/locations
 GET /api/locations/{location_id}
 GET /api/meal-plan/entries
 GET /api/meal-plan/entries/{entry_id}
+GET /api/meal-plan/excluded-items
+GET /api/meal-plan/shopping-gap
 GET /api/openapi.json
 GET /api/purchases
 GET /api/purchases/connectors
@@ -206,6 +209,8 @@ POST /api/locations
 POST /api/meal-plan/entries
 POST /api/meal-plan/entries/{entry_id}/reset
 POST /api/meal-plan/entries/{entry_id}/skip
+POST /api/meal-plan/excluded-items
+POST /api/meal-plan/shopping-gap/push
 POST /api/purchases/connectors/{key}/import
 POST /api/purchases/connectors/{key}/preview
 POST /api/purchases/draft-csv
