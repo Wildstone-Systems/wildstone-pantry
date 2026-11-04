@@ -273,7 +273,7 @@ def preview_recipe(recipe: dict) -> Any:
 def create_recipe(recipe: dict) -> Any:
     """Save a structured recipe. `recipe` = {"name", "servings"?, "instructions"?
     (plain text, one numbered step per line), "ingredients": [{"name" or
-    "item_id", "quantity", "unit", "optional"?, "notes"?}, ...]}. Unknown fields
+    "item_id", "quantity", "unit", "optional"?}, ...]}. Unknown fields
     are rejected. Call preview_recipe first when anything is uncertain."""
     return _client().create_recipe(recipe)
 
