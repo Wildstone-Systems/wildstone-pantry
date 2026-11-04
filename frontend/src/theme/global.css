@@ -233,3 +233,21 @@ body {
   .pantry-recipe-card { transition: none; }
   .pantry-recipe-card:hover { transform: none; }
 }
+
+/* Phones: iOS Safari zooms in when focusing a field whose text is < 16px and
+   doesn't zoom back out, which left modals stuck zoomed in. Keep form text at
+   16px on small screens, and keep modals inside the visible viewport so they
+   scroll instead of being pinned off-screen. */
+@media (max-width: 48em) {
+  input,
+  textarea,
+  select,
+  .mantine-Input-input,
+  .mantine-Select-input,
+  .mantine-PillsInput-field {
+    font-size: 16px !important;
+  }
+  .mantine-Modal-content {
+    max-height: 100dvh;
+  }
+}
