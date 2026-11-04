@@ -79,11 +79,14 @@ fi
 # 4. Start ---------------------------------------------------------------------
 if [ "$BUILD_FROM_SOURCE" = "1" ]; then
   # Build from the checkout: project dir = repo root so `build: context: .`
-  # resolves; fixed project name so data volumes match the pull-based install.
+  # resolves. Project name is derived from $PANTRYOS_HOME exactly like the
+  # pull branch (Compose's own rule), so both paths share the same data volumes.
+  PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(basename "$PANTRYOS_HOME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-' | sed 's/^[^a-z0-9]*//')}"
+  [ -n "$PROJECT_NAME" ] || die "Cannot derive a Compose project name from $PANTRYOS_HOME; set COMPOSE_PROJECT_NAME."
   # Local tag so we never shadow the published :stable image.
   export PANTRYOS_IMAGE=pantryos:local
   say "Building and starting PantryOS from source (first run can take several minutes)"
-  run docker compose -p pantryos --project-directory "$REPO_ROOT" --env-file "$ENV_FILE" \
+  run docker compose -p "$PROJECT_NAME" --project-directory "$REPO_ROOT" --env-file "$ENV_FILE" \
     -f "$REPO_ROOT/docker-compose.product.yml" up --build -d
 else
   say "Downloading and starting PantryOS (first run can take a few minutes)"
