@@ -156,3 +156,54 @@ def test_unknown_exclusion_is_404(client: httpx.Client) -> None:
 
 def test_gap_needs_today(client: httpx.Client) -> None:
     assert client.get("/api/meal-plan/shopping-gap", params={"start": SUNDAY}).status_code == 422
+
+
+# --- stock is shared once per ingredient (Codex review on #37) ------------------
+
+
+def _flour_recipes(client: httpx.Client, flour: str) -> tuple[str, str]:
+    grams = client.post("/api/recipes", json={"name": "Bread", "servings": 1}).json()["id"]
+    client.put(f"/api/recipes/{grams}/ingredients", json=[{"item_id": flour, "quantity_required": 100, "unit": "g"}])
+    kilos = client.post("/api/recipes", json={"name": "Pizza", "servings": 1}).json()["id"]
+    client.put(f"/api/recipes/{kilos}/ingredients", json=[{"item_id": flour, "quantity_required": 0.1, "unit": "kg"}])
+    return grams, kilos
+
+
+def test_stock_is_not_spent_twice_across_units(client: httpx.Client) -> None:
+    flour = _measured(client, "Flour")
+    _stock(client, flour, 100, "g")
+    grams, kilos = _flour_recipes(client, flour)
+    _plan(client, TUESDAY, recipe_id=grams, servings=1)
+    _plan(client, "2026-11-04", recipe_id=kilos, servings=1)
+
+    lines = _gap(client)["lines"]
+    # 200 g needed in total, 100 g on hand: one of the two lines must still buy 100 g.
+    assert [(line["unit"], float(line["to_buy"])) for line in lines] == [("kg", 0.1)]
+    assert float(lines[0]["on_hand"]) == 0
+
+
+def test_item_meals_pool_stock_across_brands(client: httpx.Client) -> None:
+    a = client.post("/api/items", json={"name": "Yoghurt", "brand": "A"}).json()["id"]
+    b = client.post("/api/items", json={"name": "Yoghurt", "brand": "B"}).json()["id"]
+    _stock(client, a, 1, "each")
+    _stock(client, b, 1, "each")
+    _plan(client, TUESDAY, item_id=a, servings=1)
+    _plan(client, "2026-11-04", item_id=b, servings=1)
+
+    assert _gap(client)["lines"] == []  # 2 needed, 2 on hand across both brands
+
+
+def test_push_combines_units_of_one_ingredient_into_one_entry(client: httpx.Client) -> None:
+    flour = _measured(client, "Flour")
+    grams, kilos = _flour_recipes(client, flour)
+    _plan(client, TUESDAY, recipe_id=grams, servings=1)
+    _plan(client, "2026-11-04", recipe_id=kilos, servings=1)
+    key = _gap(client)["lines"][0]["key"]
+
+    result = client.post(
+        "/api/meal-plan/shopping-gap/push", json={"start": SUNDAY, "today": TUESDAY, "keys": [key]}
+    ).json()
+    assert result == {"added": ["Flour"], "already_on_list": []}
+    (entry,) = [i for i in client.get("/api/shopping-list").json()["items"] if i["name"] == "Flour"]
+    assert "100 g" in entry["note"] and "0.1 kg" in entry["note"]
+    assert "Bread" in entry["note"] and "Pizza" in entry["note"]
