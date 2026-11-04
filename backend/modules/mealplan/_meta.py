@@ -5,11 +5,11 @@ MODULE_INFO = {
     "purpose": "A household calendar of intended meals: what is planned for which day and meal.",
     "owns": ["meal_plan_entries", "meal_plan_excluded_items", "meal_plan_calendar_feeds"],
     "consumes_from": {
-        "planning": ["get_recipe", "recipe_availability", "get_cook_event"],
-        "catalog": ["get_item"],
+        "planning": ["get_recipe", "recipe_availability", "get_cook_event", "recipe_nutrition"],
+        "catalog": ["get_item", "macros_for_amount"],
         "inventory": ["feed.household_stock"],
         "shopping": ["add_entry_once"],
-        "household": ["get_profile", "resolve_actor_profile"],
+        "household": ["get_profile", "list_profiles", "resolve_actor_profile"],
     },
     "invariants": [
         "A plan never reserves stock; availability stays live.",

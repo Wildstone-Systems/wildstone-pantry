@@ -132,3 +132,30 @@ class ExcludedItemCreate(BaseModel):
 
     key: str = Field(max_length=200)
     label: str = Field(max_length=200)
+
+
+# --- nutrition forecast (#34) ----------------------------------------------------
+
+
+class ForecastDay(BaseModel):
+    date: date
+    calories: int
+    # Some planned recipe lacks nutrition data for an ingredient: the real
+    # number is higher than shown.
+    partial: bool
+    # Planned meals with no calorie data at all (free text, unknown items).
+    unknown_meals: int
+    meals: int
+
+
+class ForecastPerson(BaseModel):
+    profile_id: UUID
+    display_name: str
+    target: float | None
+    days: list[ForecastDay]
+
+
+class NutritionForecast(BaseModel):
+    start: date
+    days: int
+    people: list[ForecastPerson]

@@ -4,7 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "@/test-utils";
 
-import { addDays, buildRecipeOptions, completenessLabel, cookFromPlanPath, sundayOf, todayLocal } from "../hooks/mealplan-hooks";
+import {
+  addDays,
+  buildRecipeOptions,
+  completenessLabel,
+  cookFromPlanPath,
+  forecastLabel,
+  sundayOf,
+  todayLocal,
+} from "../hooks/mealplan-hooks";
 
 const apiGet = vi.fn();
 const apiPost = vi.fn();
@@ -73,6 +81,17 @@ function completeness(recipe_id: string, have: number, needed: number, missing: 
   };
 }
 
+describe("forecastLabel", () => {
+  const day = { date: "2026-11-02", calories: 1850, partial: false, unknown_meals: 0, meals: 3 };
+  it("shows calories against the target, or alone without one", () => {
+    expect(forecastLabel(day, 2000)).toBe(`${(1850).toLocaleString()} / ${(2000).toLocaleString()} kcal`);
+    expect(forecastLabel(day, null)).toBe(`${(1850).toLocaleString()} kcal`);
+  });
+  it("marks partial data and unknown meals", () => {
+    expect(forecastLabel({ ...day, calories: 400, partial: true, unknown_meals: 1 }, null)).toBe("~400 kcal +1?");
+  });
+});
+
 describe("cook from plan", () => {
   it("opens the cook-along with the meal's servings and id", () => {
     expect(cookFromPlanPath({ id: "e1", recipe_id: "r1", servings: 6 })).toBe("/recipes/r1/cook?servings=6&planEntry=e1");
@@ -139,6 +158,21 @@ describe("MealPlanPage", () => {
       if (url === "/api/household/profiles") return { data: PROFILES };
       if (url === "/api/recipes") return { data: [{ id: "r1", name: "Baked Turkey", instructions: null, created_at: "" }] };
       if (url === "/api/items") return { data: { items: [] } };
+      if (url === "/api/meal-plan/nutrition")
+        return {
+          data: {
+            start: SUNDAY,
+            days: 7,
+            people: [
+              {
+                profile_id: "p1",
+                display_name: "Sam",
+                target: 300,
+                days: [{ date: SUNDAY, calories: 450, partial: false, unknown_meals: 1, meals: 3 }],
+              },
+            ],
+          },
+        };
       if (url === "/api/recipes/suggestions")
         return { data: { location_id: null, suggestions: [completeness("r1", 3, 4, ["Sage"])] } };
       throw new Error(`unexpected GET ${url}`);
@@ -155,7 +189,8 @@ describe("MealPlanPage", () => {
     expect(await within(sunday).findByText("Baked Turkey")).toBeInTheDocument();
     expect(within(sunday).getByText("Green Bean Casserole")).toBeInTheDocument();
     expect(within(sunday).getByText("Protein shake")).toBeInTheDocument();
-    expect(within(sunday).getByText("Sam")).toBeInTheDocument();
+    // The "for" badge on the meal (Sam also appears in the day's forecast line).
+    expect(within(sunday).getAllByText("Sam").some((el) => el.closest(".mantine-Badge-root"))).toBe(true);
     expect(apiGet).toHaveBeenCalledWith("/api/meal-plan/entries", { params: { start: SUNDAY, days: 7 } });
   });
 
@@ -229,6 +264,16 @@ describe("MealPlanPage", () => {
     renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
     expect(await screen.findByRole("button", { name: "Calendar link" })).toBeInTheDocument();
     isAdmin = false;
+  });
+
+  it("shows each person's planned calories for the day, red when over target", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    const line = await screen.findByTestId(`forecast-${SUNDAY}-Sam`);
+    expect(line).toHaveTextContent("450 / 300 kcal +1?");
+    expect(line.getAttribute("style") ?? "").toContain("red");
+    // Days with nothing planned show no forecast.
+    expect(screen.queryByTestId(`forecast-${addDays(SUNDAY, 1)}-Sam`)).not.toBeInTheDocument();
   });
 
   it("skips a planned meal from its editor", async () => {

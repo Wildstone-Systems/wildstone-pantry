@@ -92,6 +92,7 @@ GET /api/meal-plan/cook-candidates
 GET /api/meal-plan/entries
 GET /api/meal-plan/entries/{entry_id}
 GET /api/meal-plan/excluded-items
+GET /api/meal-plan/nutrition
 GET /api/meal-plan/shopping-gap
 GET /api/openapi.json
 GET /api/purchases

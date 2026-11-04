@@ -12,10 +12,14 @@ import { ShoppingGapModal } from "../components/ShoppingGapModal";
 import {
   MEAL_TYPES,
   addDays,
+  forecastLabel,
   sundayOf,
   todayLocal,
   useMealPlanWeek,
+  useNutritionForecast,
   weekDays,
+  type ForecastDay,
+  type ForecastPerson,
   type MealPlanEntry,
   type MealType,
 } from "../hooks/mealplan-hooks";
@@ -63,10 +67,37 @@ function EntryRow({ entry, forName, onOpen }: { entry: MealPlanEntry; forName: s
   );
 }
 
+/** Planned calories per person for one day (#34). Hidden on a day nobody has
+ *  anything planned. Red when over that person's daily target. */
+function DayForecast({ day, people }: { day: string; people: ForecastPerson[] }) {
+  const rows = people
+    .map((p) => ({ person: p, day: p.days.find((d) => d.date === day) }))
+    .filter((r): r is { person: ForecastPerson; day: ForecastDay } => r.day != null && r.day.meals > 0);
+  if (rows.length === 0) return null;
+  return (
+    <Stack gap={0} mt={8} pt={6} style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
+      {rows.map(({ person, day: d }) => {
+        const over = person.target != null && d.calories > person.target;
+        return (
+          <Group key={person.profile_id} justify="space-between" gap={4} wrap="nowrap">
+            <Text size="xs" c="dimmed" truncate>
+              {person.display_name}
+            </Text>
+            <Text size="xs" c={over ? "red" : "dimmed"} data-testid={`forecast-${day}-${person.display_name}`}>
+              {forecastLabel(d, person.target)}
+            </Text>
+          </Group>
+        );
+      })}
+    </Stack>
+  );
+}
+
 export function MealPlanPage() {
   const today = todayLocal();
   const [start, setStart] = useState(() => sundayOf(today));
   const week = useMealPlanWeek(start);
+  const forecast = useNutritionForecast(start);
   const profiles = useHouseholdProfiles();
   const [target, setTarget] = useState<EditorTarget | null>(null);
   const [shoppingOpen, setShoppingOpen] = useState(false);
@@ -187,6 +218,7 @@ export function MealPlanPage() {
                 );
               })}
             </Stack>
+            <DayForecast day={day} people={forecast.data?.people ?? []} />
           </Card>
         ))}
       </SimpleGrid>
