@@ -106,3 +106,4 @@ from modules.shopping.receipt_review_models import ReceiptReviewDraft  # noqa: E
 
 from modules.shopping.purchase_review_models import PurchaseCsvClaim, PurchaseReviewDraft  # noqa: E402,F401
 from modules.planning.models.substitution_review import SubstitutionReview  # noqa: E402,F401
+from modules.mealplan.models import MealPlanCalendarFeed, MealPlanEntry, MealPlanExcludedItem  # noqa: E402,F401

@@ -1,0 +1,288 @@
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithProviders } from "@/test-utils";
+
+import {
+  addDays,
+  buildRecipeOptions,
+  completenessLabel,
+  cookFromPlanPath,
+  forecastLabel,
+  sundayOf,
+  todayLocal,
+} from "../hooks/mealplan-hooks";
+
+const apiGet = vi.fn();
+const apiPost = vi.fn();
+const apiPatch = vi.fn();
+const apiDelete = vi.fn();
+
+let isAdmin = false;
+vi.mock("@/state/AuthProvider", () => ({ useAuth: () => ({ isAdmin }) }));
+
+vi.mock("@/api/client", () => ({
+  api: {
+    get: (...a: unknown[]) => apiGet(...a),
+    post: (...a: unknown[]) => apiPost(...a),
+    patch: (...a: unknown[]) => apiPatch(...a),
+    delete: (...a: unknown[]) => apiDelete(...a),
+  },
+}));
+
+const SUNDAY = sundayOf(todayLocal());
+
+function entry(over: Record<string, unknown>) {
+  return {
+    id: "e1",
+    plan_date: SUNDAY,
+    meal_type: "dinner",
+    position: 0,
+    kind: "recipe",
+    meal: "Baked Turkey",
+    recipe_id: "r1",
+    item_id: null,
+    title: "Baked Turkey",
+    servings: 6,
+    profile_id: null,
+    status: "planned",
+    cook_event_id: null,
+    source: "manual",
+    note: null,
+    created_by: null,
+    created_at: "",
+    updated_at: "",
+    ...over,
+  };
+}
+
+const PROFILES = {
+  profiles: [{ id: "p1", display_name: "Sam", account_id: null, daily_calorie_target: null, has_pin: false, is_active: true, created_at: "" }],
+};
+
+describe("helpers", () => {
+  it("finds the Sunday that starts the week", () => {
+    expect(sundayOf("2026-11-04")).toBe("2026-11-01");
+    expect(sundayOf("2026-11-01")).toBe("2026-11-01");
+    expect(sundayOf("2026-11-07")).toBe("2026-11-01");
+    expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
+  });
+});
+
+function completeness(recipe_id: string, have: number, needed: number, missing: string[] = []) {
+  return {
+    recipe_id,
+    recipe_name: recipe_id,
+    available_score: needed ? have / needed : 1,
+    have_count: have,
+    needed_count: needed,
+    missing_items: missing,
+  };
+}
+
+describe("forecastLabel", () => {
+  const day = { date: "2026-11-02", calories: 1850, partial: false, unknown_meals: 0, meals: 3 };
+  it("shows calories against the target, or alone without one", () => {
+    expect(forecastLabel(day, 2000)).toBe(`${(1850).toLocaleString()} / ${(2000).toLocaleString()} kcal`);
+    expect(forecastLabel(day, null)).toBe(`${(1850).toLocaleString()} kcal`);
+  });
+  it("marks partial data and unknown meals", () => {
+    expect(forecastLabel({ ...day, calories: 400, partial: true, unknown_meals: 1 }, null)).toBe("~400 kcal +1?");
+  });
+});
+
+describe("cook from plan", () => {
+  it("opens the cook-along with the meal's servings and id", () => {
+    expect(cookFromPlanPath({ id: "e1", recipe_id: "r1", servings: 6 })).toBe("/recipes/r1/cook?servings=6&planEntry=e1");
+  });
+});
+
+describe("recipe completeness", () => {
+  const recipes = [
+    { id: "a", name: "Apple Pie" },
+    { id: "b", name: "Baked Turkey" },
+    { id: "c", name: "Chilli" },
+    { id: "d", name: "Dumplings" },
+  ];
+  const scores = [completeness("a", 1, 4), completeness("b", 9, 10), completeness("c", 4, 4)];
+
+  it("sorts most complete first, unscored recipes last", () => {
+    expect(buildRecipeOptions(recipes, scores).map((o) => o.label)).toEqual([
+      "Chilli",
+      "Baked Turkey",
+      "Apple Pie",
+      "Dumplings",
+    ]);
+  });
+
+  it("filters to mostly complete recipes", () => {
+    expect(buildRecipeOptions(recipes, scores, { mostlyCompleteOnly: true }).map((o) => o.label)).toEqual([
+      "Chilli",
+      "Baked Turkey",
+    ]);
+  });
+
+  it("treats a recipe with only optional ingredients as unscored", () => {
+    const withOptionalOnly = [...scores, completeness("d", 0, 0)];
+    expect(buildRecipeOptions(recipes, withOptionalOnly).map((o) => o.label).at(-1)).toBe("Dumplings");
+    expect(buildRecipeOptions(recipes, withOptionalOnly, { mostlyCompleteOnly: true }).map((o) => o.label)).toEqual([
+      "Chilli",
+      "Baked Turkey",
+    ]);
+  });
+
+  it("labels counts, and nothing when there is nothing to count", () => {
+    expect(completenessLabel(completeness("b", 9, 10))).toBe("9/10 on hand");
+    expect(completenessLabel(completeness("x", 0, 0))).toBeNull();
+    expect(completenessLabel(null)).toBeNull();
+  });
+});
+
+describe("MealPlanPage", () => {
+  beforeEach(() => {
+    for (const m of [apiGet, apiPost, apiPatch, apiDelete]) m.mockReset();
+    apiGet.mockImplementation(async (url: string) => {
+      if (url === "/api/meal-plan/entries")
+        return {
+          data: {
+            start: SUNDAY,
+            days: 7,
+            entries: [
+              entry({}),
+              entry({ id: "e2", position: 1, meal: "Green Bean Casserole", recipe_id: "r2", servings: 4 }),
+              entry({ id: "e3", meal_type: "snack", kind: "text", meal: "Protein shake", recipe_id: null, servings: 1, profile_id: "p1" }),
+            ],
+          },
+        };
+      if (url === "/api/household/profiles") return { data: PROFILES };
+      if (url === "/api/recipes") return { data: [{ id: "r1", name: "Baked Turkey", instructions: null, created_at: "" }] };
+      if (url === "/api/items") return { data: { items: [] } };
+      if (url === "/api/meal-plan/nutrition")
+        return {
+          data: {
+            start: SUNDAY,
+            days: 7,
+            people: [
+              {
+                profile_id: "p1",
+                display_name: "Sam",
+                target: 300,
+                days: [{ date: SUNDAY, calories: 450, partial: false, unknown_meals: 1, meals: 3 }],
+              },
+            ],
+          },
+        };
+      if (url === "/api/recipes/suggestions")
+        return { data: { location_id: null, suggestions: [completeness("r1", 3, 4, ["Sage"])] } };
+      throw new Error(`unexpected GET ${url}`);
+    });
+  });
+  afterEach(() => cleanup());
+
+  it("shows a Sunday-start week with several meals per cell and who a meal is for", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+
+    const sunday = await screen.findByTestId(`day-${SUNDAY}`);
+    expect(within(sunday).getByText("Sunday")).toBeInTheDocument();
+    expect(await within(sunday).findByText("Baked Turkey")).toBeInTheDocument();
+    expect(within(sunday).getByText("Green Bean Casserole")).toBeInTheDocument();
+    expect(within(sunday).getByText("Protein shake")).toBeInTheDocument();
+    // The "for" badge on the meal (Sam also appears in the day's forecast line).
+    expect(within(sunday).getAllByText("Sam").some((el) => el.closest(".mantine-Badge-root"))).toBe(true);
+    expect(apiGet).toHaveBeenCalledWith("/api/meal-plan/entries", { params: { start: SUNDAY, days: 7 } });
+  });
+
+  it("moves to the next week", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    await screen.findByTestId(`day-${SUNDAY}`);
+
+    await userEvent.click(screen.getByRole("button", { name: "Next week" }));
+    await waitFor(() =>
+      expect(apiGet).toHaveBeenCalledWith("/api/meal-plan/entries", { params: { start: addDays(SUNDAY, 7), days: 7 } }),
+    );
+  });
+
+  it("adds a free-text meal to an empty slot", async () => {
+    apiPost.mockResolvedValue({ data: entry({ id: "e9", kind: "text", meal: "Takeout" }) });
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    await screen.findByTestId(`day-${SUNDAY}`);
+
+    await userEvent.click(screen.getByRole("button", { name: "Add lunch on Sunday" }));
+    await userEvent.click(await screen.findByText("Other"));
+    await userEvent.type(screen.getByLabelText("What's planned"), "Takeout");
+    await userEvent.click(screen.getByRole("button", { name: "Add to plan" }));
+
+    await waitFor(() =>
+      expect(apiPost).toHaveBeenCalledWith("/api/meal-plan/entries", {
+        plan_date: SUNDAY,
+        meal_type: "lunch",
+        servings: null,
+        profile_id: null,
+        note: null,
+        title: "Takeout",
+      }),
+    );
+  });
+
+  it("shows how complete the chosen recipe is and what to buy", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Baked Turkey" }));
+    expect(await screen.findByText("To buy: Sage")).toBeInTheDocument();
+    // Shown beside the chosen recipe (and again on its dropdown option).
+    expect(screen.getAllByText("3/4 on hand").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Mostly complete only")).toBeInTheDocument();
+  });
+
+  it("offers Cook this on a planned recipe meal, not on free text", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Baked Turkey" }));
+    expect(await screen.findByRole("button", { name: "Cook this (6 servings)" })).toBeInTheDocument();
+    cleanup();
+
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Protein shake" }));
+    await screen.findByRole("button", { name: "Save" });
+    expect(screen.queryByRole("button", { name: /Cook this/ })).not.toBeInTheDocument();
+  });
+
+  it("shows the calendar link button only to an admin", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    await screen.findByTestId(`day-${SUNDAY}`);
+    expect(screen.queryByRole("button", { name: "Calendar link" })).not.toBeInTheDocument();
+    cleanup();
+
+    isAdmin = true;
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    expect(await screen.findByRole("button", { name: "Calendar link" })).toBeInTheDocument();
+    isAdmin = false;
+  });
+
+  it("shows each person's planned calories for the day, red when over target", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    const line = await screen.findByTestId(`forecast-${SUNDAY}-Sam`);
+    expect(line).toHaveTextContent("450 / 300 kcal +1?");
+    expect(line.getAttribute("style") ?? "").toContain("red");
+    // Days with nothing planned show no forecast.
+    expect(screen.queryByTestId(`forecast-${addDays(SUNDAY, 1)}-Sam`)).not.toBeInTheDocument();
+  });
+
+  it("skips a planned meal from its editor", async () => {
+    apiPost.mockResolvedValue({ data: entry({ status: "skipped" }) });
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Baked Turkey" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Skip" }));
+    await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/api/meal-plan/entries/e1/skip"));
+  });
+});

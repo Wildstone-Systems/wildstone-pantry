@@ -26,15 +26,23 @@ def _require_location(db: Session, location_id: UUID) -> None:
         raise LookupError("Location not found")
 
 
-def build_consumption_trends(db: Session, *, location_id: UUID, lookback_days: int = 30) -> list[dict]:
-    _require_location(db, location_id)
+def _location_filter(column, location_id: UUID | None) -> list:
+    """``location_id=None`` means the whole household (every location pooled)."""
+    return [column == location_id] if location_id is not None else []
+
+
+def build_consumption_trends(db: Session, *, location_id: UUID | None, lookback_days: int = 30) -> list[dict]:
+    """Usage trends. ``location_id=None`` pools every location, so an item
+    stocked in two places is judged on its household total."""
+    if location_id is not None:
+        _require_location(db, location_id)
 
     cutoff = date.today() - timedelta(days=lookback_days)
     # Usage = `consumed` events at this location within the window (true
     # consumption, unlike the legacy sum that also counted transfers).
     event_rows = db.execute(
         select(InventoryEvent).where(
-            InventoryEvent.location_id == location_id,
+            *_location_filter(InventoryEvent.location_id, location_id),
             InventoryEvent.event_type == "consumed",
             InventoryEvent.occurred_at >= cutoff,
         )
@@ -44,18 +52,18 @@ def build_consumption_trends(db: Session, *, location_id: UUID, lookback_days: i
     for row in event_rows:
         consumed_by_item[row.item_id] = consumed_by_item.get(row.item_id, Decimal("0")) + abs(Decimal(row.quantity))
 
-    balance_rows = db.execute(
-        select(InventoryBalance).where(InventoryBalance.location_id == location_id)
-    ).scalars().all()
-    inventory_by_item = {row.item_id: Decimal(row.quantity) for row in balance_rows}
+    inventory_by_item = _on_hand_by_item(db, location_id)
 
     item_names = {
         row.id: row.name
         for row in db.execute(select(Item).where(Item.id.in_(list(inventory_by_item.keys()) + list(consumed_by_item.keys())))).scalars().all()
     }
 
-    db.execute(delete(ConsumptionTrend).where(ConsumptionTrend.location_id == location_id))
-    db.commit()
+    # Snapshot rows are per-location; the pooled view is computed on the fly.
+    persist = location_id is not None
+    if persist:
+        db.execute(delete(ConsumptionTrend).where(ConsumptionTrend.location_id == location_id))
+        db.commit()
 
     trends: list[dict] = []
     for item_id, consumed in consumed_by_item.items():
@@ -63,16 +71,16 @@ def build_consumption_trends(db: Session, *, location_id: UUID, lookback_days: i
         current_qty = inventory_by_item.get(item_id, Decimal("0"))
         days_to_depletion = (current_qty / avg_daily) if avg_daily > 0 else None
 
-        model = ConsumptionTrend(
-            item_id=item_id,
-            location_id=location_id,
-            avg_daily_usage=avg_daily,
-            days_to_depletion=days_to_depletion,
-            sampled_days=lookback_days,
-        )
-        db.add(model)
-        db.commit()
-        db.refresh(model)
+        if persist:
+            db.add(
+                ConsumptionTrend(
+                    item_id=item_id,
+                    location_id=location_id,
+                    avg_daily_usage=avg_daily,
+                    days_to_depletion=days_to_depletion,
+                    sampled_days=lookback_days,
+                )
+            )
 
         trends.append(
             {
@@ -84,21 +92,36 @@ def build_consumption_trends(db: Session, *, location_id: UUID, lookback_days: i
             }
         )
 
+    if persist:
+        db.commit()
+
     trends.sort(key=lambda row: row["avg_daily_usage"], reverse=True)
     return trends
 
 
-def build_restock_suggestions(db: Session, *, location_id: UUID) -> list[dict]:
-    _require_location(db, location_id)
+def _on_hand_by_item(db: Session, location_id: UUID | None) -> dict[UUID, Decimal]:
+    rows = db.execute(
+        select(InventoryBalance).where(*_location_filter(InventoryBalance.location_id, location_id))
+    ).scalars().all()
+    totals: dict[UUID, Decimal] = {}
+    for row in rows:
+        totals[row.item_id] = totals.get(row.item_id, Decimal("0")) + Decimal(row.quantity)
+    return totals
+
+
+def build_restock_suggestions(db: Session, *, location_id: UUID | None) -> list[dict]:
+    """Restock suggestions. ``location_id=None`` judges each item on its
+    household-wide stock, so plenty in the pantry offsets an empty fridge."""
+    if location_id is not None:
+        _require_location(db, location_id)
 
     trends = build_consumption_trends(db, location_id=location_id)
-    balance_rows = db.execute(
-        select(InventoryBalance).where(InventoryBalance.location_id == location_id)
-    ).scalars().all()
-    inventory_by_item = {row.item_id: Decimal(row.quantity) for row in balance_rows}
+    inventory_by_item = _on_hand_by_item(db, location_id)
 
-    db.execute(delete(RestockSuggestion).where(RestockSuggestion.location_id == location_id))
-    db.commit()
+    persist = location_id is not None
+    if persist:
+        db.execute(delete(RestockSuggestion).where(RestockSuggestion.location_id == location_id))
+        db.commit()
 
     suggestions: list[dict] = []
     for trend in trends:
@@ -115,16 +138,16 @@ def build_restock_suggestions(db: Session, *, location_id: UUID) -> list[dict]:
         reason = "low_stock" if current_qty <= 1 else "depleting_soon"
         recommendation = f"Restock {item_name} soon (qty={current_qty:.2f})."
 
-        row = RestockSuggestion(
-            item_id=item_id,
-            location_id=location_id,
-            priority=priority,
-            reason=reason,
-            recommendation=recommendation,
-        )
-        db.add(row)
-        db.commit()
-        db.refresh(row)
+        if persist:
+            db.add(
+                RestockSuggestion(
+                    item_id=item_id,
+                    location_id=location_id,
+                    priority=priority,
+                    reason=reason,
+                    recommendation=recommendation,
+                )
+            )
 
         suggestions.append(
             {
@@ -136,6 +159,9 @@ def build_restock_suggestions(db: Session, *, location_id: UUID) -> list[dict]:
                 "recommendation": recommendation,
             }
         )
+
+    if persist:
+        db.commit()
 
     suggestions.sort(key=lambda row: row["priority"], reverse=True)
     return suggestions
