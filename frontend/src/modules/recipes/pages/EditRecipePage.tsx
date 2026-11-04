@@ -221,6 +221,15 @@ export function EditRecipePage() {
     reviewGeneration.current += 1;
     setReviewBusy(false);
   }, [currentPacket, rawFormState]);
+  // Edits invalidate the previous review. Re-run the rules-only check
+  // automatically once typing pauses, so fixing errors doesn't leave Save
+  // locked until the user finds and re-clicks "Check current recipe".
+  useEffect(() => {
+    if (!importSource || !currentPacket) return;
+    const timer = setTimeout(() => void requestReview(false), 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPacket, Boolean(importSource)]);
   const requestReview = async (classifier: boolean) => {
     const packet = latestPacket.current;
     if (!packet) {
@@ -310,6 +319,17 @@ export function EditRecipePage() {
     .map((ing, idx) => ({ ing, idx }))
     .filter(({ ing }) => ing.unit && !unitValues.has(ing.unit));
   const hasUnknownUnit = unknownUnitRows.length > 0;
+  // Say why Save is locked instead of leaving a silently disabled button.
+  const reviewCurrent = Boolean(review && review.packet === currentPacket);
+  const saveBlockReason = !isValid || !currentPacket
+    ? "Fix the highlighted fields before saving."
+    : hasUnknownUnit
+      ? null
+      : importSource && (reviewBusy || !reviewCurrent)
+        ? "Checking your edits…"
+        : importSource && !confirmed
+          ? "Tick the confirmation box in the review below to enable Save."
+          : null;
 
   return (
     <Stack component="form" onSubmit={onSubmit} gap="md">
@@ -324,6 +344,10 @@ export function EditRecipePage() {
           </Button>
         </Group>
       </Group>
+
+      {saveBlockReason && !saveMutation.isPending && (
+        <Text size="sm" c="dimmed" data-testid="save-block-reason">{saveBlockReason}</Text>
+      )}
 
       {status && (
         <Paper p="sm" bg={status.includes("Failed") ? "red.1" : "green.1"}>
