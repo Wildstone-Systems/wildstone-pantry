@@ -127,3 +127,18 @@ def test_candidates_are_planned_meals_of_that_recipe_that_day(client: httpx.Clie
     resp = client.get("/api/meal-plan/cook-candidates", params={"recipe_id": chilli, "on": TUESDAY})
     assert resp.status_code == 200, resp.text
     assert [e["id"] for e in resp.json()] == [dinner["id"]]
+
+
+def test_changing_what_a_cooked_meal_is_unlinks_the_cook(client: httpx.Client, _recipe, _cook) -> None:
+    chilli, soup = _recipe(client, "Chilli"), _recipe(client, "Soup")
+    entry = _plan(client, recipe_id=chilli)
+    client.post(f"/api/meal-plan/entries/{entry['id']}/cooked", json={"cook_event_id": _cook(client, chilli)})
+    url = f"/api/meal-plan/entries/{entry['id']}"
+
+    # Saving it unchanged (the editor always sends the meal) keeps it cooked.
+    kept = client.patch(url, json={"recipe_id": chilli, "note": "spicy"}).json()
+    assert (kept["status"], kept["cook_event_id"] is not None) == ("cooked", True)
+
+    # Making it a different meal: no longer the one that was cooked.
+    changed = client.patch(url, json={"recipe_id": soup}).json()
+    assert (changed["meal"], changed["status"], changed["cook_event_id"]) == ("Soup", "planned", None)
