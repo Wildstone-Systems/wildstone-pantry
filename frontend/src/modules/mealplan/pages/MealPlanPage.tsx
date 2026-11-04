@@ -1,10 +1,12 @@
 import { ActionIcon, Alert, Badge, Button, Card, Group, Loader, SimpleGrid, Stack, Text, Title, UnstyledButton } from "@mantine/core";
-import { ChevronLeft, ChevronRight, Plus, ShoppingCart } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, ShoppingCart } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { getApiErrorMessage } from "@/api/errors";
 import { useHouseholdProfiles } from "@/api/hooks";
+import { useAuth } from "@/state/AuthProvider";
 
+import { CalendarFeedModal } from "../components/CalendarFeedModal";
 import { EntryEditor, type EditorTarget } from "../components/EntryEditor";
 import { ShoppingGapModal } from "../components/ShoppingGapModal";
 import {
@@ -68,6 +70,8 @@ export function MealPlanPage() {
   const profiles = useHouseholdProfiles();
   const [target, setTarget] = useState<EditorTarget | null>(null);
   const [shoppingOpen, setShoppingOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const { isAdmin } = useAuth();
   // A week that has fully passed has nothing left to shop for.
   const weekIsPast = addDays(start, 6) < today;
 
@@ -117,6 +121,16 @@ export function MealPlanPage() {
           >
             Shopping
           </Button>
+          {isAdmin && (
+            <Button
+              size="xs"
+              variant="subtle"
+              leftSection={<CalendarDays size={14} />}
+              onClick={() => setCalendarOpen(true)}
+            >
+              Calendar link
+            </Button>
+          )}
         </Group>
       </Group>
 
@@ -179,6 +193,7 @@ export function MealPlanPage() {
 
       <EntryEditor target={target} dayOptions={dayOptions} onClose={() => setTarget(null)} />
       <ShoppingGapModal opened={shoppingOpen} start={start} today={today} onClose={() => setShoppingOpen(false)} />
+      <CalendarFeedModal opened={calendarOpen} onClose={() => setCalendarOpen(false)} />
     </Stack>
   );
 }

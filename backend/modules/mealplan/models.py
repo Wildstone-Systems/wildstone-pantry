@@ -85,3 +85,18 @@ class MealPlanExcludedItem(Base):
     key: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     label: Mapped[str] = mapped_column(String(200), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class MealPlanCalendarFeed(Base):
+    """The household's read-only iCal feed of the plan (#33).
+
+    Calendar apps can't send headers, so the link itself carries a secret.
+    Only its SHA-256 is stored; making a new link replaces the old one, and
+    deleting the row turns the feed off.
+    """
+
+    __tablename__ = "meal_plan_calendar_feeds"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

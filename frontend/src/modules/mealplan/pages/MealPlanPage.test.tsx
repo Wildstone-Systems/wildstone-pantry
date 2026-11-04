@@ -11,6 +11,9 @@ const apiPost = vi.fn();
 const apiPatch = vi.fn();
 const apiDelete = vi.fn();
 
+let isAdmin = false;
+vi.mock("@/state/AuthProvider", () => ({ useAuth: () => ({ isAdmin }) }));
+
 vi.mock("@/api/client", () => ({
   api: {
     get: (...a: unknown[]) => apiGet(...a),
@@ -213,6 +216,19 @@ describe("MealPlanPage", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Edit Protein shake" }));
     await screen.findByRole("button", { name: "Save" });
     expect(screen.queryByRole("button", { name: /Cook this/ })).not.toBeInTheDocument();
+  });
+
+  it("shows the calendar link button only to an admin", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    await screen.findByTestId(`day-${SUNDAY}`);
+    expect(screen.queryByRole("button", { name: "Calendar link" })).not.toBeInTheDocument();
+    cleanup();
+
+    isAdmin = true;
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+    expect(await screen.findByRole("button", { name: "Calendar link" })).toBeInTheDocument();
+    isAdmin = false;
   });
 
   it("skips a planned meal from its editor", async () => {

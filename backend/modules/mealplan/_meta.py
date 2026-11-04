@@ -3,7 +3,7 @@
 MODULE_INFO = {
     "name": "mealplan",
     "purpose": "A household calendar of intended meals: what is planned for which day and meal.",
-    "owns": ["meal_plan_entries", "meal_plan_excluded_items"],
+    "owns": ["meal_plan_entries", "meal_plan_excluded_items", "meal_plan_calendar_feeds"],
     "consumes_from": {
         "planning": ["get_recipe", "recipe_availability", "get_cook_event"],
         "catalog": ["get_item"],
