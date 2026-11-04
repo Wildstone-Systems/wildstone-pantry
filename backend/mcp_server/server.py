@@ -262,6 +262,128 @@ def suggest_recipes(location_id: str | None = None) -> Any:
 
 
 @mcp.tool()
+def preview_recipe(recipe: dict) -> Any:
+    """Dry-run a structured recipe WITHOUT saving it. `recipe` uses the same
+    shape as create_recipe. Returns per-ingredient matches, unit problems and
+    merged duplicates — show these to the user before saving."""
+    return _client().validate_recipe(recipe)
+
+
+@mcp.tool()
+def create_recipe(recipe: dict) -> Any:
+    """Save a structured recipe. `recipe` = {"name", "servings"?, "instructions"?
+    (plain text, one numbered step per line), "ingredients": [{"name" or
+    "item_id", "quantity", "unit", "optional"?, "notes"?}, ...]}. Unknown fields
+    are rejected. Call preview_recipe first when anything is uncertain."""
+    return _client().create_recipe(recipe)
+
+
+@mcp.tool()
+def parse_recipe_text(raw_text: str) -> Any:
+    """Parse pasted recipe text (or text you extracted from a web page) into a
+    title, instructions and ingredient lines. Saves NOTHING — review the result
+    with the user, fix anything wrong, then pass it to ingest_recipe."""
+    return _client().parse_recipe_text(raw_text)
+
+
+@mcp.tool()
+def ingest_recipe(parsed: dict, create_missing_items: bool = True) -> Any:
+    """Save a recipe from parse_recipe_text's output (edited as needed). Missing
+    catalog items are created unless create_missing_items is false.
+    `flagged_units` in the reply lists units that need remapping."""
+    return _client().ingest_parsed_recipe(parsed, create_missing_items=create_missing_items)
+
+
+@mcp.tool()
+def search_external_recipes(query: str) -> Any:
+    """Search online recipe providers (TheMealDB, plus Spoonacular if
+    configured) by name. Returns hits with `source` + `external_id`."""
+    return _client().search_external_recipes(query)
+
+
+@mcp.tool()
+def get_external_recipe(source: str, external_id: str) -> Any:
+    """Full detail for one search_external_recipes hit. `recipe` is already in
+    create_recipe shape: preview_recipe it, then create_recipe to import."""
+    return _client().get_external_recipe(source, external_id)
+
+
+@mcp.tool()
+def list_meal_plan(start: str, days: int = 7) -> Any:
+    """Planned meals from `start` (YYYY-MM-DD) for `days` days."""
+    return _client().list_meal_plan(start=start, days=days)
+
+
+@mcp.tool()
+def plan_meal(
+    plan_date: str,
+    meal_type: str,
+    recipe_id: str | None = None,
+    item_id: str | None = None,
+    title: str | None = None,
+    servings: int | None = None,
+    profile_id: str | None = None,
+    note: str | None = None,
+) -> Any:
+    """Add a meal to the plan. meal_type: breakfast|lunch|dinner|snack. Give
+    exactly ONE of recipe_id, item_id or title (free text like "Eat out").
+    servings defaults to the recipe's own."""
+    return _client().plan_meal(
+        plan_date=plan_date,
+        meal_type=meal_type,
+        recipe_id=recipe_id,
+        item_id=item_id,
+        title=title,
+        servings=servings,
+        profile_id=profile_id,
+        note=note,
+    )
+
+
+@mcp.tool()
+def update_planned_meal(
+    entry_id: str,
+    plan_date: str | None = None,
+    meal_type: str | None = None,
+    position: int | None = None,
+    servings: int | None = None,
+    note: str | None = None,
+) -> Any:
+    """Move or edit a planned meal (new day, meal slot, order, servings, note).
+    Only the fields you pass change."""
+    return _client().update_planned_meal(
+        entry_id, plan_date=plan_date, meal_type=meal_type, position=position, servings=servings, note=note
+    )
+
+
+@mcp.tool()
+def remove_planned_meal(entry_id: str) -> Any:
+    """Delete a planned meal."""
+    return _client().remove_planned_meal(entry_id)
+
+
+@mcp.tool()
+def mark_planned_meal(entry_id: str, status: str, cook_event_id: str | None = None) -> Any:
+    """Set a planned meal's status: "skipped", "planned" (undo), or "cooked"
+    (needs the cook_event_id that cook_recipe returned)."""
+    return _client().mark_planned_meal(entry_id, status, cook_event_id=cook_event_id)
+
+
+@mcp.tool()
+def meal_plan_shopping_gap(start: str, today: str, days: int = 7) -> Any:
+    """What the plan needs that isn't in stock, from `today` through the week
+    starting `start`. Each line has a `key` usable with push_meal_plan_gap."""
+    return _client().meal_plan_shopping_gap(start=start, today=today, days=days)
+
+
+@mcp.tool()
+def push_meal_plan_gap(start: str, today: str, days: int = 7, keys: list[str] | None = None) -> Any:
+    """Add the plan's missing ingredients to the shopping list. Pass `keys` from
+    meal_plan_shopping_gap to choose lines; omit to add them all. Safe to repeat."""
+    return _client().push_meal_plan_gap(start=start, today=today, days=days, keys=keys)
+
+
+@mcp.tool()
 def cook_recipe(
     recipe_id: str,
     location_id: str | None = None,
