@@ -190,7 +190,7 @@ describe("Classifier evaluation", () => {
     await screen.findByText("Retained diagnostics must be reviewed before draft replacement.");
     expect(screen.queryByLabelText("Evaluation case")).not.toBeInTheDocument();
     expect(screen.getByText(/Up to 20 runs can be saved/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Load recent saved runs" }));
+    await user.click(await screen.findByRole("button", { name: "Load recent saved runs" }));
     await user.click(await screen.findByRole("button", { name: "View saved run old-diagnostic" }));
     await screen.findByText("Run old-diagnostic: interrupted · 1/1");
     await user.click(screen.getByRole("button", { name: "Delete saved run old-diagnostic" }));
@@ -411,7 +411,7 @@ describe("Classifier evaluation", () => {
   it("loads a saved interrupted record for viewing without resuming it", async () => {
     const user = await open();
     get.mockImplementation(async (url) => ({ data: url.endsWith("/runs") ? { runs: [{ ...result, status: "interrupted" }] } : { ...result, status: "interrupted" } }));
-    await user.click(screen.getByRole("button", { name: "Load recent saved runs" }));
+    await user.click(await screen.findByRole("button", { name: "Load recent saved runs" }));
     await user.click(await screen.findByRole("button", { name: "View saved run run-1" }));
     await screen.findByText("Run run-1: interrupted · 1/1");
     expect(post).not.toHaveBeenCalled();
@@ -426,7 +426,7 @@ describe("Classifier evaluation", () => {
     await user.click(screen.getByRole("button", { name: "Start evaluation" }));
     await screen.findByText(/Evaluation stopped. Check its saved record/);
     expect(screen.getByText(/Up to 20 runs can be saved/)).toHaveTextContent("delete an old record to make room");
-    await user.click(screen.getByRole("button", { name: "Load recent saved runs" }));
+    await user.click(await screen.findByRole("button", { name: "Load recent saved runs" }));
     await user.click(await screen.findByRole("button", { name: "View saved run old-0" }));
     await screen.findByText("Run old-0: interrupted · 1/1");
     await user.click(screen.getByRole("button", { name: "Delete saved run old-0" }));
@@ -452,7 +452,7 @@ describe("Classifier evaluation", () => {
   it("blocks running-record deletion and preserves a record if the server rejects a stale delete", async () => {
     const user = await open();
     get.mockResolvedValue({ data: { runs: [{ ...result, id: "active", status: "running" }, { ...result, id: "stale", status: "ready" }] } });
-    await user.click(screen.getByRole("button", { name: "Load recent saved runs" }));
+    await user.click(await screen.findByRole("button", { name: "Load recent saved runs" }));
     expect(await screen.findByRole("button", { name: "Delete saved run active" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Delete saved run stale" }));
     remove.mockRejectedValue(new Error("Became active"));

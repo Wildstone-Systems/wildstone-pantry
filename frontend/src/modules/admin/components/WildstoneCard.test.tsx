@@ -81,7 +81,7 @@ describe("WildstoneCard", () => {
     const user = await openCard();
     expect(await screen.findByText("Not connected")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Pair with Wildstone" }));
+    await user.click(await screen.findByRole("button", { name: "Pair with Wildstone" }));
     expect(apiPost).toHaveBeenCalledWith("/api/integrations/wildstone/pairing");
     expect(await screen.findByTestId("pairing-code")).toHaveTextContent("KCTW-X54C");
     expect(screen.getByText(window.location.origin)).toBeInTheDocument();

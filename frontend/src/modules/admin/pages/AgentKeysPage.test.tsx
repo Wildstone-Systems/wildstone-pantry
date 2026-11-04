@@ -45,7 +45,7 @@ describe("Agent keys page — connect guide", () => {
 
     // The three snippets render with their copy buttons.
     expect(screen.getByText(/Briefing to paste to your agent/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy Quick test (terminal)" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Copy Quick test (terminal)" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Copy MCP client config/ }),
     ).toBeInTheDocument();

@@ -26,7 +26,16 @@ function getInitialMode(initialMode?: ThemeMode): ThemeMode {
   return stored === "dark" ? "dark" : "light";
 }
 
-export function ThemeModeProvider({ children, initialMode }: { children: ReactNode; initialMode?: ThemeMode }) {
+export function ThemeModeProvider({
+  children,
+  initialMode,
+  env,
+}: {
+  children: ReactNode;
+  initialMode?: ThemeMode;
+  /** "test" disables Mantine transitions and portals so tests see dropdown content at once. */
+  env?: "default" | "test";
+}) {
   const [mode, setModeState] = useState<ThemeMode>(() => getInitialMode(initialMode));
 
   const setMode = (nextMode: ThemeMode) => {
@@ -49,7 +58,7 @@ export function ThemeModeProvider({ children, initialMode }: { children: ReactNo
 
   return (
     <ThemeModeContext.Provider value={contextValue}>
-      <MantineProvider theme={theme} forceColorScheme={mode}>
+      <MantineProvider theme={theme} forceColorScheme={mode} env={env}>
         {children}
       </MantineProvider>
     </ThemeModeContext.Provider>

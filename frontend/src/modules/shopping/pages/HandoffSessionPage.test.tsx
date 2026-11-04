@@ -134,7 +134,7 @@ describe("HandoffSessionPage", () => {
     await user.click(screen.getByRole("button", { name: "Finish shopping" }));
     await user.click(await screen.findByRole("checkbox", { name: /Whole Milk/ }));
 
-    const itemSelect = (await screen.findByRole("textbox", { name: "Location for Whole Milk" })) as HTMLInputElement;
+    const itemSelect = (await screen.findByRole("combobox", { name: "Location for Whole Milk" })) as HTMLInputElement;
     expect(itemSelect.value).toBe("Fridge");
 
     await user.click(itemSelect);

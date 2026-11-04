@@ -33,3 +33,13 @@ if (!(window as any).ResizeObserver) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function scrollIntoView() {};
 }
+
+// jsdom has no FontFaceSet. Mantine's autosizing Textarea listens on
+// `document.fonts` for font loads to re-measure; stub the event API.
+if (!(document as any).fonts) {
+  (document as any).fonts = {
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    ready: Promise.resolve(),
+  };
+}
