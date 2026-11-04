@@ -11,6 +11,7 @@ Rules this enforces:
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from datetime import date, timedelta
 from uuid import UUID
@@ -146,7 +147,8 @@ def _check_profile(db: Session, profile_id: UUID | None) -> None:
         raise MealPlanInputError("no active household profile has that profile_id")
 
 
-def create(db: Session, payload: MealPlanEntryCreate, *, actor: str | None, source: str = "manual") -> dict:
+def _build(db: Session, payload: MealPlanEntryCreate, *, actor: str | None, source: str) -> MealPlanEntry:
+    """Validate one new entry and add it to the session (not committed)."""
     meal = _resolve_meal(db, recipe_id=payload.recipe_id, item_id=payload.item_id, title=payload.title)
     _check_profile(db, payload.profile_id)
     recipe = meal.pop("_recipe", None)
@@ -166,10 +168,36 @@ def create(db: Session, payload: MealPlanEntryCreate, *, actor: str | None, sour
             **meal,
         ),
     )
+    # Sessions don't autoflush: flush so the next entry built in the same batch
+    # sees this one when it works out its position (main, then side).
+    db.flush()
+    return entry
+
+
+def create(db: Session, payload: MealPlanEntryCreate, *, actor: str | None, source: str = "manual") -> dict:
+    entry = _build(db, payload, actor=actor, source=source)
     db.commit()
     db.refresh(entry)
     logger.info("meal plan entry %s added for %s %s (%s)", entry.id, entry.plan_date, entry.meal_type, source)
     return to_read(db, entry)
+
+
+def create_many(
+    db: Session, payloads: list[MealPlanEntryCreate], *, actor: str | None, source: str = "manual"
+) -> list[dict]:
+    """Add several entries as one unit: all of them, or none if any is invalid
+    (an agent drafting a week should never leave half a week behind)."""
+    try:
+        entries = [_build(db, payload, actor=actor, source=source) for payload in payloads]
+    except Exception:
+        db.rollback()
+        raise
+    db.commit()
+    for entry in entries:
+        db.refresh(entry)
+    logger.info("meal plan: %d entries added together (%s)", len(entries), source)
+    cache: dict = {}
+    return [to_read(db, e, cache) for e in entries]
 
 
 def update(db: Session, entry_id: UUID, payload: MealPlanEntryUpdate) -> dict:
@@ -297,3 +325,29 @@ def cook_candidates(db: Session, *, recipe_id: UUID, on: date) -> list[dict]:
     entries = repository.list_entries(db, start=on, end=on + timedelta(days=1))
     cache: dict = {}
     return [to_read(db, e, cache) for e in entries if e.recipe_id == recipe_id and e.status == "planned"]
+
+
+# --- change detection (#33) -----------------------------------------------------
+
+
+def plan_state(db: Session, *, today: date) -> dict:
+    """What the meal plan looks like right now, for noticing a change
+    (Wildstone ``pantry.meal_plan_changed``), like the shopping list's
+    ``list_state``.
+
+    ``fingerprint`` changes whenever an entry is added, edited, moved, cooked,
+    skipped or removed; ``changed_at`` is the newest edit (None once the plan
+    is empty: a deletion leaves no timestamp); ``upcoming`` counts planned
+    meals from ``today`` on.
+    """
+    digest = hashlib.sha256()
+    latest = None
+    upcoming = 0
+    for row in repository.fingerprint_rows(db):
+        entry_id, plan_date, meal_type, position, status, updated_at = row
+        digest.update(f"{entry_id}|{plan_date}|{meal_type}|{position}|{status}|{updated_at}\n".encode())
+        if latest is None or updated_at > latest:
+            latest = updated_at
+        if status == "planned" and plan_date >= today:
+            upcoming += 1
+    return {"fingerprint": digest.hexdigest()[:32], "upcoming": upcoming, "changed_at": latest}

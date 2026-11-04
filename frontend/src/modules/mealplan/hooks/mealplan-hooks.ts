@@ -275,3 +275,34 @@ export async function fetchCookCandidates(recipeId: string, day: string): Promis
   const res = await api.get<MealPlanEntry[]>("/api/meal-plan/cook-candidates", { params: { recipe_id: recipeId, on: day } });
   return res.data;
 }
+
+// --- calendar feed (#33) ---------------------------------------------------------
+
+export type CalendarFeedStatus = { enabled: boolean; created_at: string | null };
+
+export function useCalendarFeedStatus(enabled: boolean) {
+  return useQuery({
+    queryKey: [...KEY, "calendar-feed"],
+    enabled,
+    queryFn: async () => (await api.get<CalendarFeedStatus>("/api/meal-plan/calendar-feed")).data,
+  });
+}
+
+/** A new secret link (shown once; the old one stops working). */
+export function useCreateCalendarFeed() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async () => (await api.post<{ path: string; created_at: string }>("/api/meal-plan/calendar-feed")).data,
+    onSuccess: invalidate,
+  });
+}
+
+export function useTurnOffCalendarFeed() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async () => {
+      await api.delete("/api/meal-plan/calendar-feed");
+    },
+    onSuccess: invalidate,
+  });
+}
