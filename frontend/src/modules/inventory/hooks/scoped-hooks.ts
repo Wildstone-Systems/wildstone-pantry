@@ -1,4 +1,4 @@
-import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/api/client";
 import type { ConsumptionTrend, ExpiringItem, RecipeSuggestion, RestockSuggestion } from "@/api/hooks";
@@ -63,6 +63,10 @@ function qs(params: Record<string, string | number | undefined>) {
   return encoded ? `?${encoded}` : "";
 }
 
+/** A location id that matches nothing — disables the per-location fan-out
+ * while the household query is in use (hooks can't be called conditionally). */
+const NONE = "__household__";
+
 function useScoped<T>(
   type: string,
   locationId: string | null,
@@ -90,6 +94,44 @@ function useScoped<T>(
       results.forEach((r) => r.refetch());
     },
   };
+}
+
+/**
+ * Household-wide variant: one request to a pooled endpoint that already
+ * aggregates every location server-side (e.g. restock judged on total stock,
+ * not per shelf). Rows carrying a `location_id` get its name filled in; pooled
+ * rows without one get an empty location.
+ */
+function useHousehold<T extends object>(
+  type: string,
+  enabled: boolean,
+  fetchAll: () => Promise<T[]>,
+  extraKey: Array<string | number> = [],
+): ScopedResult<T> {
+  const { data: locations = [] } = useLocations();
+  const query = useQuery({
+    queryKey: ["scoped", type, "household", ...extraKey],
+    queryFn: fetchAll,
+    enabled,
+  });
+  const names = new Map(locations.map((loc) => [loc.id, loc.name]));
+  const data = (query.data ?? []).map((row) => {
+    const locId = (row as { location_id?: string | null }).location_id ?? "";
+    return { ...row, location_id: locId, location_name: names.get(locId) ?? "" };
+  });
+  return {
+    data,
+    isLoading: enabled && query.isLoading,
+    isFetching: query.isFetching,
+    refetch: () => {
+      void query.refetch();
+    },
+  };
+}
+
+/** Picks the pooled household query for `null`, else the per-location one. */
+function pick<T>(locationId: string | null, household: ScopedResult<T>, scoped: ScopedResult<T>): ScopedResult<T> {
+  return locationId === null ? household : scoped;
 }
 
 export function useScopedInventory(locationId: string | null) {
@@ -170,9 +212,18 @@ export function useScopedTransactions(locationId: string | null, limit = 50) {
 }
 
 export function useScopedExpiring(locationId: string | null, withinDays = 7) {
-  return useScoped<ExpiringItem>(
+  const household = useHousehold<ExpiringItem>(
     "expiring",
-    locationId,
+    locationId === null,
+    async () => {
+      const res = await api.get<{ expiring_items: ExpiringItem[] }>(`/api/insights/expiring${qs({ within_days: withinDays })}`);
+      return res.data.expiring_items;
+    },
+    [withinDays],
+  );
+  const scoped = useScoped<ExpiringItem>(
+    "expiring",
+    locationId ?? NONE,
     async (loc) => {
       const res = await api.get<{ expiring_items: ExpiringItem[] }>(
         `/api/insights/expiring/${loc.id}${qs({ within_days: withinDays })}`,
@@ -181,19 +232,34 @@ export function useScopedExpiring(locationId: string | null, withinDays = 7) {
     },
     [withinDays],
   );
+  return pick(locationId, household, scoped);
 }
 
 export function useScopedRestock(locationId: string | null) {
-  return useScoped<RestockSuggestion>("restock", locationId, async (loc) => {
+  const household = useHousehold<RestockSuggestion>("restock", locationId === null, async () => {
+    const res = await api.get<{ suggestions: RestockSuggestion[] }>("/api/insights/restock");
+    return res.data.suggestions;
+  });
+  const scoped = useScoped<RestockSuggestion>("restock", locationId ?? NONE, async (loc) => {
     const res = await api.get<{ suggestions: RestockSuggestion[] }>(`/api/insights/restock/${loc.id}`);
     return res.data.suggestions;
   });
+  return pick(locationId, household, scoped);
 }
 
 export function useScopedTrends(locationId: string | null, lookbackDays = 30) {
-  return useScoped<ConsumptionTrend>(
+  const household = useHousehold<ConsumptionTrend>(
     "trends",
-    locationId,
+    locationId === null,
+    async () => {
+      const res = await api.get<{ trends: ConsumptionTrend[] }>(`/api/insights/trends${qs({ lookback_days: lookbackDays })}`);
+      return res.data.trends;
+    },
+    [lookbackDays],
+  );
+  const scoped = useScoped<ConsumptionTrend>(
+    "trends",
+    locationId ?? NONE,
     async (loc) => {
       const res = await api.get<{ trends: ConsumptionTrend[] }>(
         `/api/insights/trends/${loc.id}${qs({ lookback_days: lookbackDays })}`,
@@ -202,6 +268,7 @@ export function useScopedTrends(locationId: string | null, lookbackDays = 30) {
     },
     [lookbackDays],
   );
+  return pick(locationId, household, scoped);
 }
 
 export type ReverseTransactionResult = { transaction_id: string; reversed_id: string };
@@ -234,8 +301,15 @@ export function useReverseTransaction() {
 }
 
 export function useScopedRecipeSuggestions(locationId: string | null) {
-  return useScoped<RecipeSuggestion>("recipeSuggestions", locationId, async (loc) => {
+  // Pooled: a recipe whose ingredients are split across fridge and pantry still
+  // scores as fully on hand.
+  const household = useHousehold<RecipeSuggestion>("recipeSuggestions", locationId === null, async () => {
+    const res = await api.get<{ suggestions: RecipeSuggestion[] }>("/api/recipes/suggestions");
+    return res.data.suggestions;
+  });
+  const scoped = useScoped<RecipeSuggestion>("recipeSuggestions", locationId ?? NONE, async (loc) => {
     const res = await api.get<{ suggestions: RecipeSuggestion[] }>(`/api/recipes/suggestions/${loc.id}`);
     return res.data.suggestions;
   });
+  return pick(locationId, household, scoped);
 }

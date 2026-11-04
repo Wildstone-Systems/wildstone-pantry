@@ -49,6 +49,9 @@ class WildstoneRelayState(Base):
     # The grocery list's fingerprint as last reported: a different one, once
     # the edits settle, is a pantry.shopping_list_changed.
     list_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # The meal plan as last reported (#33): a different fingerprint, once the
+    # edits settle, is a pantry.meal_plan_changed.
+    meal_plan_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
     cook_cursor: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expiry_scan_on: Mapped[date | None] = mapped_column(Date(), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

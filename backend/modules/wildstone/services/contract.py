@@ -29,7 +29,7 @@ from modules.planning.services.insights import list_expiring_items
 from modules.planning.services.recipes import get_recipe_with_ingredients, suggest_recipes
 from modules.planning.services.steps import split_instructions
 from modules.shopping.services import shopping_list
-from modules.wildstone.services import meals
+from modules.wildstone.services import meal_plan, meals
 from modules.wildstone.services.members import valid_member
 
 CONTRACT_VERSION = "pantry-1"
@@ -297,6 +297,37 @@ def _a_meal_undo(db: Session, body: dict) -> tuple[dict, bool]:
         raise BadRequest(str(exc)) from exc
 
 
+# --- meal plan (#33) ---
+
+
+def _q_meal_plan(db: Session, params: dict) -> tuple[dict, bool]:
+    try:
+        return meal_plan.query_plan(db, params)
+    except meals.MealRequestError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def _a_meal_plan_add(db: Session, body: dict) -> tuple[dict, bool]:
+    try:
+        return meal_plan.add_meal(db, body), False
+    except meals.MealRequestError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def _a_meal_plan_week(db: Session, body: dict) -> tuple[dict, bool]:
+    try:
+        return meal_plan.plan_week(db, body), False
+    except meals.MealRequestError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def _a_meal_plan_remove(db: Session, body: dict) -> tuple[dict, bool]:
+    try:
+        return meal_plan.remove_meal(db, body), False
+    except meals.MealRequestError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
 Handler = Callable[[Session, dict], tuple[dict, bool]]
 
 QUERIES: dict[str, Handler] = {
@@ -308,6 +339,7 @@ QUERIES: dict[str, Handler] = {
     "pantry.recipe": _q_recipe,
     "pantry.cook.current": _q_cook_current,
     "pantry.timers": _q_timers,
+    "pantry.meal_plan": _q_meal_plan,
 }
 
 ACTIONS: dict[str, Handler] = {
@@ -321,6 +353,9 @@ ACTIONS: dict[str, Handler] = {
     "pantry.timer.cancel": _a_timer_cancel,
     "pantry.meal.log": _a_meal_log,
     "pantry.meal.undo": _a_meal_undo,
+    "pantry.meal_plan.add": _a_meal_plan_add,
+    "pantry.meal_plan.week": _a_meal_plan_week,
+    "pantry.meal_plan.remove": _a_meal_plan_remove,
 }
 
 # A PROPOSAL (ADR-W030 A8): Wildstone's policy validates it, and an owner may
@@ -338,6 +373,10 @@ PROPOSED_RISK: dict[str, str] = {
     # Your own log only, and undo exists.
     "pantry.meal.log": "domestic",
     "pantry.meal.undo": "domestic",
+    # A plan reserves no stock and buys nothing; anyone can change it after.
+    "pantry.meal_plan.add": "domestic",
+    "pantry.meal_plan.week": "domestic",
+    "pantry.meal_plan.remove": "domestic",
 }
 
 
@@ -364,6 +403,7 @@ def capabilities() -> dict:
             "pantry.item_spoiled",
             "pantry.shopping_list_changed",
             "pantry.timer_finished",
+            "pantry.meal_plan_changed",
         )
     ]
     return {"contract": CONTRACT_VERSION, "capabilities": caps}

@@ -142,6 +142,99 @@ class PantryOSClient:
         resp.raise_for_status()
         return {"deleted": event_id}
 
+    def _delete(self, path: str) -> None:
+        resp = self._http.delete(path)
+        resp.raise_for_status()
+
+    # --- recipe authoring / import ---
+    def create_recipe(self, recipe: dict) -> Any:
+        return self._post("/api/recipes", recipe)
+
+    def validate_recipe(self, recipe: dict) -> Any:
+        return self._post("/api/recipes/validate", recipe)
+
+    def parse_recipe_text(self, raw_text: str) -> Any:
+        return self._post("/api/recipes/parse-text", {"raw_text": raw_text})
+
+    def ingest_parsed_recipe(self, parsed: dict, *, create_missing_items: bool = True) -> Any:
+        body = {
+            "title": parsed["title"],
+            "instructions": parsed.get("instructions"),
+            "ingredients": parsed.get("ingredients", []),
+            "source": parsed.get("source", "text"),
+            "source_text": parsed.get("source_text") or parsed.get("raw_text"),
+            "create_missing_items": create_missing_items,
+        }
+        return self._post("/api/recipes/ingest-parsed", body)
+
+    def search_external_recipes(self, query: str) -> Any:
+        return self._get("/api/recipes/search-external", {"query": query})
+
+    def get_external_recipe(self, source: str, external_id: str) -> Any:
+        return self._get(f"/api/recipes/search-external/{source}/{external_id}")
+
+    # --- meal plan ---
+    def list_meal_plan(self, *, start: str, days: int = 7) -> Any:
+        return self._get("/api/meal-plan/entries", {"start": start, "days": days})
+
+    def plan_meal(
+        self,
+        *,
+        plan_date: str,
+        meal_type: str,
+        recipe_id: str | None = None,
+        item_id: str | None = None,
+        title: str | None = None,
+        servings: int | None = None,
+        profile_id: str | None = None,
+        note: str | None = None,
+    ) -> Any:
+        return self._post(
+            "/api/meal-plan/entries",
+            {
+                "plan_date": plan_date,
+                "meal_type": meal_type,
+                "recipe_id": recipe_id,
+                "item_id": item_id,
+                "title": title,
+                "servings": servings,
+                "profile_id": profile_id,
+                "note": note,
+            },
+        )
+
+    def update_planned_meal(self, entry_id: str, **changes: Any) -> Any:
+        return self._patch(f"/api/meal-plan/entries/{entry_id}", changes)
+
+    def remove_planned_meal(self, entry_id: str) -> Any:
+        self._delete(f"/api/meal-plan/entries/{entry_id}")
+        return {"deleted": entry_id}
+
+    def mark_planned_meal(self, entry_id: str, status: str, *, cook_event_id: str | None = None) -> Any:
+        if status == "skipped":
+            return self._post(f"/api/meal-plan/entries/{entry_id}/skip", {})
+        if status == "planned":
+            return self._post(f"/api/meal-plan/entries/{entry_id}/reset", {})
+        if status == "cooked":
+            if not cook_event_id:
+                raise ValueError("cook_event_id is required to mark a meal cooked")
+            return self._post(f"/api/meal-plan/entries/{entry_id}/cooked", {"cook_event_id": cook_event_id})
+        raise ValueError("status must be one of: planned, skipped, cooked")
+
+    def meal_plan_shopping_gap(self, *, start: str, today: str, days: int = 7) -> Any:
+        return self._get("/api/meal-plan/shopping-gap", {"start": start, "today": today, "days": days})
+
+    def push_meal_plan_gap(
+        self, *, start: str, today: str, days: int = 7, keys: list[str] | None = None
+    ) -> Any:
+        # No keys → push every line the gap currently reports.
+        if keys is None:
+            gap = self.meal_plan_shopping_gap(start=start, today=today, days=days)
+            keys = [line["key"] for line in gap["lines"]]
+        return self._post(
+            "/api/meal-plan/shopping-gap/push", {"start": start, "today": today, "days": days, "keys": keys}
+        )
+
     def item_from_food_search(self, *, fdc_id: int, query: str) -> Any:
         return self._post("/api/items/from-food-search", {"fdc_id": fdc_id, "q": query})
 
