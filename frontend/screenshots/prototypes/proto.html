@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--bg:#f5ead9;--card:#fffaf2;--acc:#c87137;--ink:#2a211b;--dim:#8a7a6b}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{padding:28px 36px}h1{font-family:Georgia,serif;font-size:34px;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.btns span{border:1px solid #d9c9b4;border-radius:99px;padding:8px 16px;margin-left:8px;background:#fff;font-size:14px}
+.btns span.p{background:var(--acc);color:#fff;border-color:var(--acc)}
+.chips{display:flex;gap:8px;margin:0 0 20px;flex-wrap:wrap}
+.chip{padding:7px 14px;border-radius:99px;background:#efe2cf;font-size:14px}.chip.on{background:var(--acc);color:#fff}
+.search{flex:1;max-width:320px;padding:8px 14px;border-radius:99px;border:1px solid #d9c9b4;background:#fff;color:var(--dim);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.c{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 2px 8px #0001}
+.img{height:170px;display:flex;align-items:center;justify-content:center;font-size:64px;position:relative}
+.badge{position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;color:#fff}
+.g{background:#3f8f4f}.y{background:#d39b2a}.r{background:#9b8a7a}
+.b{padding:12px 14px}.n{font-weight:650;font-size:16px}.m{font-size:13px;color:var(--dim);margin-top:4px}
+.acts{display:flex;gap:8px;margin-top:10px}.acts i{font-style:normal;font-size:13px;padding:5px 10px;border-radius:8px;background:#efe2cf}
+.acts i.p{background:var(--acc);color:#fff}
+.shelf h2{font-family:Georgia,serif;font-size:22px;margin:22px 0 4px}.shelf p{margin:0 0 10px;color:var(--dim);font-size:14px}
+.row{display:flex;gap:16px;overflow:hidden}.row .c{min-width:250px}
+.hero{display:grid;grid-template-columns:1.3fr 1fr;background:var(--card);border-radius:20px;overflow:hidden;margin-bottom:22px}
+.hero .img{height:300px;font-size:120px}.hero .b{padding:28px}.hero .n{font-family:Georgia,serif;font-size:30px}
+.small .img{height:120px;font-size:44px}
+.label{position:fixed;bottom:12px;right:16px;background:#2a211b;color:#fff;padding:6px 12px;border-radius:8px;font-size:13px}
+</style></head><body><div class="wrap" id="app"></div><script>
+const R=[["Chili con Carne","🌶️",1,[],"#f3c6a8"],["Pancakes","🥞",1,[],"#f6e0a8"],["Caesar Salad","🥗",.9,["croutons"],"#cfe5b8"],["Banana Bread","🍌",.8,["walnuts","butter"],"#f1dca0"],["Beef Tacos","🌮",.6,["tortillas","salsa"],"#f4cf9c"],["Chicken Tikka Masala","🍛",.5,["cream","garam masala","naan"],"#f0bf8f"],["Lasagna","🍝",.4,["ricotta","noodles","basil"],"#f2b9a3"],["Minestrone Soup","🍲",.3,["beans","zucchini","pasta","celery"],"#d8cfa6"]];
+const badge=r=>r[2]===1?'<span class="badge g">Can make now</span>':r[3].length<=2?`<span class="badge y">Missing ${r[3].length}</span>`:`<span class="badge r">Missing ${r[3].length}</span>`;
+const card=(r,cls="")=>`<div class="c ${cls}"><div class="img" style="background:${r[4]}">${r[1]}${badge(r)}</div><div class="b"><div class="n">${r[0]}</div><div class="m">${r[3].length?"Need: "+r[3].join(", "):"You have everything"}</div><div class="acts"><i class="p">Cook along</i><i>Details</i></div></div></div>`;
+const hdr=`<div class="top"><h1>Recipes</h1><div class="btns"><span>All locations ▾</span><span>Cook something</span><span class="p">New Recipe</span><span>Import a Recipe</span><span>Find Recipe Online</span></div></div>`;
+const v=location.hash.slice(1)||"a";let h=hdr;
+if(v==="a"){h+=`<div class="chips"><div class="search">🔍 Search recipes…</div><div class="chip">All (8)</div><div class="chip on">Can make now (2)</div><div class="chip">Missing 1–2 (3)</div><div class="chip">Needs shopping (3)</div><div class="chip">Sort: Best match ▾</div></div><div class="grid">${R.map(r=>card(r)).join("")}</div><div class="label">Idea A — Filterable photo grid</div>`}
+if(v==="b"){[["Ready to cook","You have every ingredient",R.filter(r=>r[2]===1)],["Almost there","Missing 1–2 items — add to shopping list in one tap",R.filter(r=>r[2]<1&&r[3].length<=2)],["Needs a shop","Missing 3 or more",R.filter(r=>r[3].length>2)]].forEach(([t,s,l])=>h+=`<div class="shelf"><h2>${t} <span style="font-size:15px;color:var(--dim)">(${l.length})</span></h2><p>${s}</p><div class="row">${l.map(r=>card(r)).join("")}</div></div>`);h+=`<div class="label">Idea B — Shelves by "can I cook it?" (scroll sideways)</div>`}
+if(v==="c"){const f=R[0];h+=`<div class="hero"><div class="img" style="background:${f[4]}">${f[1]}${badge(f)}</div><div class="b"><div class="m">TONIGHT'S PICK · uses what expires soonest</div><div class="n">${f[0]}</div><div class="m" style="font-size:15px;margin-top:10px">5 ingredients · serves 4 · all in stock</div><div class="acts" style="margin-top:20px"><i class="p">Start cooking</i><i>Shuffle ↻</i><i>Details</i></div></div></div><div class="chips"><div class="chip on">Can make now</div><div class="chip">Missing 1–2</div><div class="chip">All</div></div><div class="grid" style="grid-template-columns:repeat(5,1fr)">${R.slice(1).map(r=>card(r,"small")).join("")}</div><div class="label">Idea C — Featured pick + compact grid</div>`}
+document.getElementById("app").innerHTML=h;
+</script></body></html>

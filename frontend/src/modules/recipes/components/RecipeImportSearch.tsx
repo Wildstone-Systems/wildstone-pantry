@@ -2,6 +2,7 @@ import {
   Alert,
   Badge,
   Button,
+  Box,
   Card,
   Group,
   Image,
@@ -30,8 +31,10 @@ import {
 
 /** Search a chili recipe, pick one, review it, import it — same "review before
  * it saves" contract as the photo/PDF/text import paths above it on the page,
- * just sourced from the web instead of something the user already has. */
-export function RecipeImportSearch() {
+ * just sourced from the web instead of something the user already has.
+ * `embedded` drops the card chrome + heading for use inside a modal that
+ * already provides a title. */
+export function RecipeImportSearch({ embedded = false }: { embedded?: boolean } = {}) {
   const { setStatus } = useAppState();
   const navigate = useNavigate();
   const generation = useRef(0);
@@ -93,11 +96,14 @@ export function RecipeImportSearch() {
 
   const previewBusy = detail.isPending || validate.isPending;
 
+  const Wrapper = embedded ? Box : Card;
   return (
-    <Card withBorder>
-      <Title order={3} mb="xs">
-        Find a Recipe Online
-      </Title>
+    <Wrapper {...(embedded ? {} : { withBorder: true })}>
+      {!embedded && (
+        <Title order={3} mb="xs">
+          Find a Recipe Online
+        </Title>
+      )}
       <Text size="sm" c="dimmed" mb="sm">
         Search {providersActive.includes("spoonacular") ? "TheMealDB and Spoonacular" : "TheMealDB"} by name and
         import — you'll get to review ingredients and units before anything saves.
@@ -249,6 +255,6 @@ export function RecipeImportSearch() {
           </Stack>
         ) : null}
       </Modal>
-    </Card>
+    </Wrapper>
   );
 }

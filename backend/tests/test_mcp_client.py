@@ -216,3 +216,50 @@ def test_client_ticks_steps_and_runs_timers() -> None:
     else:
         raise AssertionError("stopping a timer that isn't running should say so")
     pantry.stop_cooking()
+
+
+def test_client_authors_recipes_and_plans_meals() -> None:
+    """Recipe create/parse/ingest and the meal-plan tools, end-to-end via agent key."""
+    client = _client(_bootstrap_agent_key())
+
+    recipe = {
+        "name": "Agent Toast",
+        "servings": 1,
+        "instructions": "1. Toast bread\n2. Butter it",
+        "ingredients": [{"name": "Bread", "quantity": 2, "unit": "each"}],
+    }
+    preview = client.validate_recipe(recipe)
+    assert preview["ingredients"]
+    assert client.list_recipes() == []  # preview saved nothing
+
+    recipe_id = client.create_recipe(recipe)["id"]
+    assert client.get_recipe(recipe_id)["recipe"]["name"] == "Agent Toast"
+
+    parsed = client.parse_recipe_text("Pancakes\n\nIngredients\n2 cups flour\n1 egg\n\nSteps\n1. Mix\n2. Cook")
+    assert parsed["ingredients"]
+    ingested = client.ingest_parsed_recipe(parsed)
+    assert ingested["recipe_id"]
+
+    entry = client.plan_meal(plan_date="2030-01-07", meal_type="dinner", recipe_id=recipe_id)
+    assert entry["source"] == "agent" and entry["status"] == "planned"
+
+    moved = client.update_planned_meal(entry["id"], plan_date="2030-01-08", meal_type="lunch")
+    assert (moved["plan_date"], moved["meal_type"]) == ("2030-01-08", "lunch")
+
+    week = client.list_meal_plan(start="2030-01-06", days=7)
+    assert [e["id"] for e in week["entries"]] == [entry["id"]]
+
+    assert client.mark_planned_meal(entry["id"], "skipped")["status"] == "skipped"
+    assert client.mark_planned_meal(entry["id"], "planned")["status"] == "planned"
+    with pytest.raises(ValueError):
+        client.mark_planned_meal(entry["id"], "cooked")
+
+    gap = client.meal_plan_shopping_gap(start="2030-01-06", today="2030-01-06")
+    assert any(line["label"].lower() == "bread" for line in gap["lines"])
+    pushed = client.push_meal_plan_gap(start="2030-01-06", today="2030-01-06")
+    assert pushed["added"]
+    again = client.push_meal_plan_gap(start="2030-01-06", today="2030-01-06")
+    assert again["added"] == [] and again["already_on_list"]
+
+    assert client.remove_planned_meal(entry["id"]) == {"deleted": entry["id"]}
+    assert client.list_meal_plan(start="2030-01-06")["entries"] == []
