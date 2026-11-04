@@ -1,4 +1,19 @@
-import { Alert, Button, Group, Modal, NumberInput, SegmentedControl, Select, Stack, TextInput, Textarea } from "@mantine/core";
+import {
+  Alert,
+  Badge,
+  Button,
+  Group,
+  Modal,
+  NumberInput,
+  SegmentedControl,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Textarea,
+  type ComboboxItem,
+} from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 
 import { getApiErrorMessage } from "@/api/errors";
@@ -6,13 +21,35 @@ import { useHouseholdProfiles, useItems, useRecipes } from "@/api/hooks";
 
 import {
   MEAL_TYPES,
+  MOSTLY_COMPLETE,
+  buildRecipeOptions,
+  completenessLabel,
+  useRecipeCompleteness,
   useCreateMealPlanEntry,
   useDeleteMealPlanEntry,
   useSetMealPlanStatus,
   useUpdateMealPlanEntry,
   type MealPlanEntry,
   type MealType,
+  type RecipeOption,
 } from "../hooks/mealplan-hooks";
+
+function completenessColor(score: number): string {
+  if (score >= 1) return "green";
+  if (score >= MOSTLY_COMPLETE) return "teal";
+  if (score >= 0.5) return "yellow";
+  return "gray";
+}
+
+function CompletenessBadge({ option }: { option: RecipeOption }) {
+  const label = completenessLabel(option.completeness);
+  if (!option.completeness || !label) return null;
+  return (
+    <Badge size="xs" variant="light" color={completenessColor(option.completeness.available_score)}>
+      {label}
+    </Badge>
+  );
+}
 
 type Kind = "recipe" | "item" | "text";
 
@@ -33,6 +70,8 @@ export function EntryEditor({
   onClose: () => void;
 }) {
   const recipes = useRecipes();
+  const completeness = useRecipeCompleteness();
+  const [mostlyCompleteOnly, setMostlyCompleteOnly] = useState(false);
   const items = useItems();
   const profiles = useHouseholdProfiles();
   const create = useCreateMealPlanEntry();
@@ -79,10 +118,18 @@ export function EntryEditor({
     }
   }, [target]);
 
-  const recipeOptions = useMemo(
-    () => (recipes.data ?? []).map((r) => ({ value: r.id, label: r.name })),
-    [recipes.data],
-  );
+  const recipeOptions = useMemo(() => {
+    const options = buildRecipeOptions(recipes.data ?? [], completeness.data ?? [], { mostlyCompleteOnly });
+    // Keep the chosen recipe selectable even when the filter would hide it.
+    if (recipeId && !options.some((o) => o.value === recipeId)) {
+      const all = buildRecipeOptions(recipes.data ?? [], completeness.data ?? []);
+      const chosen = all.find((o) => o.value === recipeId);
+      if (chosen) options.unshift(chosen);
+    }
+    return options;
+  }, [recipes.data, completeness.data, mostlyCompleteOnly, recipeId]);
+  const optionById = useMemo(() => new Map(recipeOptions.map((o) => [o.value, o])), [recipeOptions]);
+  const chosenRecipe = recipeId ? (optionById.get(recipeId) ?? null) : null;
   const itemOptions = useMemo(() => (items.data ?? []).map((i) => ({ value: i.id, label: i.name })), [items.data]);
   const profileOptions = useMemo(
     () => [
@@ -148,15 +195,45 @@ export function EntryEditor({
           ]}
         />
         {kind === "recipe" && (
-          <Select
-            label="Recipe"
-            placeholder="Pick a recipe"
-            searchable
-            data={recipeOptions}
-            value={recipeId}
-            onChange={setRecipeId}
-            nothingFoundMessage="No recipes match"
-          />
+          <Stack gap={6}>
+            <Select
+              label="Recipe"
+              description="Most complete first"
+              placeholder="Pick a recipe"
+              searchable
+              data={recipeOptions.map(({ value, label }) => ({ value, label }))}
+              value={recipeId}
+              onChange={setRecipeId}
+              nothingFoundMessage={mostlyCompleteOnly ? "No mostly-complete recipes" : "No recipes match"}
+              renderOption={({ option }: { option: ComboboxItem }) => {
+                const full = optionById.get(option.value);
+                return (
+                  <Group justify="space-between" wrap="nowrap" w="100%" gap="xs">
+                    <Text size="sm" truncate>
+                      {option.label}
+                    </Text>
+                    {full && <CompletenessBadge option={full} />}
+                  </Group>
+                );
+              }}
+            />
+            <Switch
+              size="xs"
+              label="Mostly complete only"
+              checked={mostlyCompleteOnly}
+              onChange={(e) => setMostlyCompleteOnly(e.currentTarget.checked)}
+            />
+            {chosenRecipe?.completeness && chosenRecipe.completeness.needed_count > 0 && (
+              <Group gap={6} wrap="wrap">
+                <CompletenessBadge option={chosenRecipe} />
+                {chosenRecipe.completeness.missing_items.length > 0 && (
+                  <Text size="xs" c="dimmed">
+                    To buy: {chosenRecipe.completeness.missing_items.join(", ")}
+                  </Text>
+                )}
+              </Group>
+            )}
+          </Stack>
         )}
         {kind === "item" && (
           <Select

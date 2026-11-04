@@ -1942,6 +1942,9 @@ def suggest_recipes(db: Session, *, location_id: UUID | None = None) -> list[dic
                 "recipe_id": recipe.id,
                 "recipe_name": recipe.name,
                 "available_score": score,
+                # The raw counts behind the score, for "8/10 on hand" markers.
+                "have_count": available_count,
+                "needed_count": scoreable,
                 "missing_items": missing_items,
                 "substitutions_used": substitutions_used,
             }

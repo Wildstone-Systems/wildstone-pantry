@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "@/test-utils";
 
-import { addDays, sundayOf, todayLocal } from "../hooks/mealplan-hooks";
+import { addDays, buildRecipeOptions, completenessLabel, sundayOf, todayLocal } from "../hooks/mealplan-hooks";
 
 const apiGet = vi.fn();
 const apiPost = vi.fn();
@@ -59,6 +59,58 @@ describe("helpers", () => {
   });
 });
 
+function completeness(recipe_id: string, have: number, needed: number, missing: string[] = []) {
+  return {
+    recipe_id,
+    recipe_name: recipe_id,
+    available_score: needed ? have / needed : 1,
+    have_count: have,
+    needed_count: needed,
+    missing_items: missing,
+  };
+}
+
+describe("recipe completeness", () => {
+  const recipes = [
+    { id: "a", name: "Apple Pie" },
+    { id: "b", name: "Baked Turkey" },
+    { id: "c", name: "Chilli" },
+    { id: "d", name: "Dumplings" },
+  ];
+  const scores = [completeness("a", 1, 4), completeness("b", 9, 10), completeness("c", 4, 4)];
+
+  it("sorts most complete first, unscored recipes last", () => {
+    expect(buildRecipeOptions(recipes, scores).map((o) => o.label)).toEqual([
+      "Chilli",
+      "Baked Turkey",
+      "Apple Pie",
+      "Dumplings",
+    ]);
+  });
+
+  it("filters to mostly complete recipes", () => {
+    expect(buildRecipeOptions(recipes, scores, { mostlyCompleteOnly: true }).map((o) => o.label)).toEqual([
+      "Chilli",
+      "Baked Turkey",
+    ]);
+  });
+
+  it("treats a recipe with only optional ingredients as unscored", () => {
+    const withOptionalOnly = [...scores, completeness("d", 0, 0)];
+    expect(buildRecipeOptions(recipes, withOptionalOnly).map((o) => o.label).at(-1)).toBe("Dumplings");
+    expect(buildRecipeOptions(recipes, withOptionalOnly, { mostlyCompleteOnly: true }).map((o) => o.label)).toEqual([
+      "Chilli",
+      "Baked Turkey",
+    ]);
+  });
+
+  it("labels counts, and nothing when there is nothing to count", () => {
+    expect(completenessLabel(completeness("b", 9, 10))).toBe("9/10 on hand");
+    expect(completenessLabel(completeness("x", 0, 0))).toBeNull();
+    expect(completenessLabel(null)).toBeNull();
+  });
+});
+
 describe("MealPlanPage", () => {
   beforeEach(() => {
     for (const m of [apiGet, apiPost, apiPatch, apiDelete]) m.mockReset();
@@ -78,6 +130,8 @@ describe("MealPlanPage", () => {
       if (url === "/api/household/profiles") return { data: PROFILES };
       if (url === "/api/recipes") return { data: [{ id: "r1", name: "Baked Turkey", instructions: null, created_at: "" }] };
       if (url === "/api/items") return { data: { items: [] } };
+      if (url === "/api/recipes/suggestions")
+        return { data: { location_id: null, suggestions: [completeness("r1", 3, 4, ["Sage"])] } };
       throw new Error(`unexpected GET ${url}`);
     });
   });
@@ -128,6 +182,17 @@ describe("MealPlanPage", () => {
         title: "Takeout",
       }),
     );
+  });
+
+  it("shows how complete the chosen recipe is and what to buy", async () => {
+    const { MealPlanPage } = await import("./MealPlanPage");
+    renderWithProviders(<MealPlanPage />, { initialEntries: ["/meal-plan"] });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Baked Turkey" }));
+    expect(await screen.findByText("To buy: Sage")).toBeInTheDocument();
+    // Shown beside the chosen recipe (and again on its dropdown option).
+    expect(screen.getAllByText("3/4 on hand").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Mostly complete only")).toBeInTheDocument();
   });
 
   it("skips a planned meal from its editor", async () => {

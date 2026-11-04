@@ -597,6 +597,9 @@ class RecipeSuggestionRead(BaseModel):
     recipe_id: UUID
     recipe_name: str
     available_score: float
+    # Required (non-optional) ingredients on hand / counted; the score is their ratio.
+    have_count: int = 0
+    needed_count: int = 0
     missing_items: list[str]
     substitutions_used: list[RecipeSuggestionSubstitution] = Field(default_factory=list)
 

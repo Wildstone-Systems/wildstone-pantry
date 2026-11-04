@@ -127,3 +127,59 @@ export function useSetMealPlanStatus() {
     onSuccess: invalidate,
   });
 }
+
+// --- recipe completeness (#30) ------------------------------------------------
+
+export type RecipeCompleteness = {
+  recipe_id: string;
+  recipe_name: string;
+  available_score: number;
+  have_count: number;
+  needed_count: number;
+  missing_items: string[];
+};
+
+/** A recipe counts as "mostly complete" at or above this share on hand. */
+export const MOSTLY_COMPLETE = 0.75;
+
+/** How much of each recipe is on hand, pooled across every location. */
+export function useRecipeCompleteness() {
+  return useQuery({
+    queryKey: [...KEY, "recipe-completeness"],
+    queryFn: async () => {
+      const res = await api.get<{ suggestions: RecipeCompleteness[] }>("/api/recipes/suggestions");
+      return res.data.suggestions;
+    },
+  });
+}
+
+export type RecipeOption = {
+  value: string;
+  label: string;
+  /** Null when the recipe has no required ingredients to score. */
+  completeness: RecipeCompleteness | null;
+};
+
+/**
+ * Every recipe, most complete first, then unscored ones, then A–Z within ties.
+ * All recipes stay pickable: the marker guides the choice, it never blocks it.
+ */
+export function buildRecipeOptions(
+  recipes: { id: string; name: string }[],
+  completeness: RecipeCompleteness[],
+  { mostlyCompleteOnly = false }: { mostlyCompleteOnly?: boolean } = {},
+): RecipeOption[] {
+  // Nothing counted (only optional lines) means unscored, not "100% on hand".
+  const byId = new Map(completeness.filter((c) => c.needed_count > 0).map((c) => [c.recipe_id, c]));
+  const score = (o: RecipeOption) => (o.completeness ? o.completeness.available_score : -1);
+  return recipes
+    .map((r) => ({ value: r.id, label: r.name, completeness: byId.get(r.id) ?? null }))
+    .filter((o) => !mostlyCompleteOnly || (o.completeness != null && o.completeness.available_score >= MOSTLY_COMPLETE))
+    .sort((a, b) => score(b) - score(a) || a.label.localeCompare(b.label));
+}
+
+/** "8/10 on hand", or null when there is nothing to count. */
+export function completenessLabel(c: RecipeCompleteness | null): string | null {
+  if (!c || c.needed_count === 0) return null;
+  return `${c.have_count}/${c.needed_count} on hand`;
+}
