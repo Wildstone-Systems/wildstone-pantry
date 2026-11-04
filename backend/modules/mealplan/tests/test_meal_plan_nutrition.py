@@ -71,6 +71,17 @@ def test_an_item_meal_uses_its_calories_per_each(client: httpx.Client, household
     assert _day(client, "Alex")["calories"] == 300
 
 
+def test_an_item_prefers_per_100g_data_over_a_stale_per_unit_number(client: httpx.Client, household: dict) -> None:
+    # Same rule as meal logging: 165 kcal/100 g at 100 g each beats a legacy 95/unit.
+    egg = client.post(
+        "/api/items",
+        json={"name": "Egg", "calories_per_unit": 95, "energy_kcal_100g": 165, "grams_per_each": 100},
+        headers=household["h"],
+    ).json()
+    _plan(client, item_id=egg["id"], servings=1, profile_id=household["alex"])
+    assert _day(client, "Alex")["calories"] == 165
+
+
 def test_free_text_is_unknown_not_zero(client: httpx.Client, household: dict) -> None:
     _plan(client, title="Takeout", meal_type="dinner")
     alex = _day(client, "Alex")

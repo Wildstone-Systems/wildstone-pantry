@@ -5,8 +5,9 @@ How a planned meal counts:
 - recipe: its per-serving calories (planning's ``recipe_nutrition``) × the
   entry's pinned servings; an ingredient without nutrition data makes the
   number ``partial`` rather than silently low;
-- item: servings × one "each" of the item (its ``calories_per_unit``, as meal
-  logging uses, else catalog ``macros_for_amount``);
+- item: servings × one "each" of the item, resolved as meal logging does
+  (per-100 g data via catalog ``macros_for_amount`` first, else the item's
+  ``calories_per_unit``);
 - free text ("Takeout") or no data at all: **unknown**, never zero.
 
 Who it counts for: an entry for one person is all theirs; a household entry
@@ -47,12 +48,14 @@ def _entry_calories(db: Session, entry: dict, cache: dict) -> tuple[Decimal | No
             item = get_item(db, entry["item_id"])
             if item is None:
                 cache[key] = None
-            elif item.calories_per_unit is not None:
-                # The same per-"each" number meal logging uses.
-                cache[key] = item.calories_per_unit
             else:
+                # Meal logging's order: structured per-100 g data first, the
+                # older per-unit number only when that can't be resolved.
                 macros = macros_for_amount(db, item, Decimal(1), "each")
-                cache[key] = macros.get("calories") if macros else None
+                calories = macros.get("calories") if macros else None
+                if calories is None and item.calories_per_unit is not None:
+                    calories = item.calories_per_unit
+                cache[key] = calories
         each = cache[key]
         if each is None:
             return None, False
