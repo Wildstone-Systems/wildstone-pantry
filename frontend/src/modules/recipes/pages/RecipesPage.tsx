@@ -19,7 +19,7 @@ import {
 import { useMediaQuery } from "@mantine/hooks";
 import { ChefHat, ListChecks, Pencil, PlayCircle, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 import { getApiErrorMessage } from "@/api/errors";
 import { useLocations } from "@/api/hooks";

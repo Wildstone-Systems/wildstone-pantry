@@ -1,4 +1,4 @@
-# PantryOS desktop launcher (ADR 0018 §4)
+# PantryOS desktop launcher
 
 Tauri v2 app: **Download → Install → Open**. Detects Docker, generates the
 instance config (secrets never shown), starts the product compose stack,
@@ -27,7 +27,7 @@ npx @tauri-apps/cli@^2 dev     # run against the wizard UI
 npx @tauri-apps/cli@^2 build   # produce installers (unsigned until beta)
 ```
 
-## Deliberate v1 scope (ADR 0018 §4)
+## Deliberate v1 scope
 
 - Docker Desktop is detected and the user is pointed at docker.com when
   missing; managed install (winget/brew) and a tray mode are the next

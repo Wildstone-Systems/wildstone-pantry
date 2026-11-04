@@ -1,6 +1,6 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Route, Routes, useLocation } from "react-router";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { expect, it, vi } from "vitest";
 import { renderWithProviders } from "@/test-utils";
 import { RecipeImportSearch } from "./RecipeImportSearch";
