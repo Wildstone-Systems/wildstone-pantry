@@ -153,8 +153,7 @@ def _build(db: Session, payload: MealPlanEntryCreate, *, actor: str | None, sour
     _check_profile(db, payload.profile_id)
     recipe = meal.pop("_recipe", None)
     servings = payload.servings or (recipe.servings if recipe is not None and recipe.servings else 1)
-    # next_position autoflushes, so entries built earlier in the same batch count.
-    return repository.add(
+    entry = repository.add(
         db,
         MealPlanEntry(
             plan_date=payload.plan_date,
@@ -169,6 +168,10 @@ def _build(db: Session, payload: MealPlanEntryCreate, *, actor: str | None, sour
             **meal,
         ),
     )
+    # Sessions don't autoflush: flush so the next entry built in the same batch
+    # sees this one when it works out its position (main, then side).
+    db.flush()
+    return entry
 
 
 def create(db: Session, payload: MealPlanEntryCreate, *, actor: str | None, source: str = "manual") -> dict:

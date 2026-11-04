@@ -1,6 +1,7 @@
 import { Alert, Button, CopyButton, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { useEffect, useState } from "react";
 
+import { apiBaseUrl } from "@/api/client";
 import { getApiErrorMessage } from "@/api/errors";
 
 import { useCalendarFeedStatus, useCreateCalendarFeed, useTurnOffCalendarFeed } from "../hooks/mealplan-hooks";
@@ -94,7 +95,9 @@ export function CalendarFeedModal({ opened, onClose }: { opened: boolean; onClos
             onClick={() =>
               run(async () => {
                 const made = await create.mutateAsync();
-                setUrl(`${window.location.origin}${made.path}`);
+                // The API may live on another address (VITE_API_BASE_URL): the
+                // calendar app must call the API, not the web app.
+                setUrl(`${apiBaseUrl()}${made.path}`);
               })
             }
           >

@@ -112,14 +112,19 @@ def test_a_week_is_planned_all_or_nothing(client: httpx.Client) -> None:
     good = _act(client, agent, "pantry.meal_plan.week", {"meals": [
         {"date": "2026-11-02", "recipe": "Chilli"},
         {"date": "2026-11-02", "title": "Garlic bread"},
+        {"date": "2026-11-02", "title": "Salad"},
         {"date": "2026-11-03", "meal_type": "lunch", "title": "Leftovers", "member": "sam"},
     ]})
     assert good.status_code == 200, good.text
-    assert good.json()["data"]["added"] == 3
+    assert good.json()["data"]["added"] == 4
     entries = _query(client, agent, {"start": SUNDAY}).json()["data"]["entries"]
     assert [(e["date"], e["meal"]) for e in entries] == [
-        ("2026-11-02", "Chilli"), ("2026-11-02", "Garlic bread"), ("2026-11-03", "Leftovers"),
+        ("2026-11-02", "Chilli"), ("2026-11-02", "Garlic bread"), ("2026-11-02", "Salad"),
+        ("2026-11-03", "Leftovers"),
     ]
+    # Same day + meal: each in its own place, in the order sent (main, then sides).
+    app_week = client.get("/api/meal-plan/entries", params={"start": SUNDAY}, headers=h).json()["entries"]
+    assert [e["position"] for e in app_week if e["plan_date"] == "2026-11-02"] == [0, 1, 2]
 
 
 def test_remove_is_repeat_safe(client: httpx.Client) -> None:
@@ -194,3 +199,11 @@ def test_a_burst_of_plan_edits_is_one_change(client: httpx.Client) -> None:
     changes = _changes()
     assert [c["payload"]["upcoming_meals"] for c in changes] == [3, 2, 0]
     assert len({c["eventId"] for c in changes}) == 3
+
+
+def test_an_edit_before_the_first_pass_is_still_news(client: httpx.Client) -> None:
+    h, agent, *_ = _setup(client)
+    _connect(client, h)  # the starting picture is taken here, not at the first pass
+    _act(client, agent, "pantry.meal_plan.add", {"date": "2099-01-02", "title": "Soup"})
+    _pass()
+    assert [c["payload"] for c in _changes()] == [{"upcoming_meals": 1}]

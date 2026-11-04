@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.services.app_settings import get_setting, is_true, set_setting
 from modules.inventory.services.feed import head_seq
+from modules.mealplan.services import plan_state
 from modules.shopping.services import connector_config
 from modules.shopping.services.shopping_list import items_below_threshold, list_state
 from modules.wildstone import repository
@@ -73,6 +74,9 @@ def _start_relay(db: Session) -> None:
             cook_cursor=_now(),
             # The list as it stands is the starting picture, not news.
             list_fingerprint=list_state(db)["fingerprint"],
+            # Likewise the meal plan (#33): an edit made after connecting but
+            # before the first relay pass must still be news.
+            meal_plan_fingerprint=plan_state(db, today=_now().date())["fingerprint"],
             updated_at=_now(),
         ),
     )

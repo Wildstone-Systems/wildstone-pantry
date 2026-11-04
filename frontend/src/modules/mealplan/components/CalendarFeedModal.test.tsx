@@ -10,6 +10,7 @@ const apiGet = vi.fn();
 const apiPost = vi.fn();
 const apiDelete = vi.fn();
 vi.mock("@/api/client", () => ({
+  apiBaseUrl: () => "https://api.example.test",
   api: {
     get: (...a: unknown[]) => apiGet(...a),
     post: (...a: unknown[]) => apiPost(...a),
@@ -23,7 +24,7 @@ describe("CalendarFeedModal", () => {
   });
   afterEach(() => cleanup());
 
-  it("makes a link and shows it once, with the site's address", async () => {
+  it("makes a link and shows it once, on the API's address", async () => {
     apiGet.mockResolvedValue({ data: { enabled: false, created_at: null } });
     apiPost.mockResolvedValue({ data: { path: "/api/meal-plan/calendar.ics?token=mpcal_x", created_at: "" } });
     renderWithProviders(<CalendarFeedModal opened onClose={() => {}} />);
@@ -31,7 +32,7 @@ describe("CalendarFeedModal", () => {
     expect(await screen.findByText("No calendar link yet.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Make a link" }));
     expect(await screen.findByLabelText("Your calendar link")).toHaveValue(
-      `${window.location.origin}/api/meal-plan/calendar.ics?token=mpcal_x`,
+      "https://api.example.test/api/meal-plan/calendar.ics?token=mpcal_x",
     );
   });
 
