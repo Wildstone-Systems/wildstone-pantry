@@ -16,7 +16,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 import { getApiErrorMessage } from "@/api/errors";
 import { useAppState } from "@/state/AppStateProvider";
