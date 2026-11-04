@@ -1813,6 +1813,14 @@ def cook_recipe(
     return result
 
 
+def get_cook_event(db: Session, cook_event_id: UUID) -> dict | None:
+    """One recorded cook, for linking it elsewhere (the meal plan, #32)."""
+    event = planning_repository.get_cook_event(db, cook_event_id)
+    if event is None:
+        return None
+    return {"cook_event_id": event.id, "recipe_id": event.recipe_id, "created_at": event.created_at}
+
+
 def cook_events_since(db: Session, *, since: datetime | None, limit: int = 200) -> list[dict]:
     """Cooks recorded at or after ``since``, oldest first (ADR 0026 §4).
 

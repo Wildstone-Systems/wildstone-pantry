@@ -19,6 +19,7 @@ from modules.mealplan import services, shopping_gap
 from modules.mealplan.schemas import (
     ExcludedItemCreate,
     ExcludedItemRead,
+    MealPlanEntryCooked,
     MealPlanEntryCreate,
     MealPlanEntryRead,
     MealPlanEntryUpdate,
@@ -67,6 +68,15 @@ def create_entry(
     return _run(db, services.create, payload, actor=actor, source=source)
 
 
+@router.get("/cook-candidates", response_model=list[MealPlanEntryRead])
+def list_cook_candidates(
+    recipe_id: UUID = Query(...),
+    on: date = Query(..., description="The viewer's local day the cook happened"),
+    db: Session = Depends(get_db),
+):
+    return _run(db, services.cook_candidates, recipe_id=recipe_id, on=on)
+
+
 @router.get("/entries/{entry_id}", response_model=MealPlanEntryRead)
 def get_entry(entry_id: UUID, db: Session = Depends(get_db)):
     return _run(db, services.get, entry_id)
@@ -86,6 +96,12 @@ def delete_entry(entry_id: UUID, db: Session = Depends(get_db)):
 @router.post("/entries/{entry_id}/skip", response_model=MealPlanEntryRead)
 def skip_entry(entry_id: UUID, db: Session = Depends(get_db)):
     return _run(db, services.skip, entry_id)
+
+
+@router.post("/entries/{entry_id}/cooked", response_model=MealPlanEntryRead)
+def cooked_entry(entry_id: UUID, payload: MealPlanEntryCooked, db: Session = Depends(get_db)):
+    """Record which finished cook fulfilled this planned meal."""
+    return _run(db, services.mark_cooked, entry_id, cook_event_id=payload.cook_event_id)
 
 
 @router.post("/entries/{entry_id}/reset", response_model=MealPlanEntryRead)

@@ -14,11 +14,13 @@ import {
 } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/client";
 import { getApiErrorMessage } from "@/api/errors";
 import { QuantityStepper } from "@/components/QuantityStepper";
+import { PlannedCookPrompt, fetchCookCandidates, todayLocal, useMarkMealCooked, type MealPlanEntry } from "@/modules/mealplan";
+import { ROUTES } from "@/routes/paths";
 import { useAppState } from "@/state/AppStateProvider";
 
 import { CookTimers } from "../components/CookTimers";
@@ -86,6 +88,16 @@ export function CookAlongPage() {
   const { recipeId } = useParams();
   const navigate = useNavigate();
   const { setStatus, activeProfileId } = useAppState();
+  // Arriving from the meal plan's "Cook this" (#32): the planned meal's pinned
+  // servings and which meal to mark cooked when this finishes.
+  const [searchParams] = useSearchParams();
+  const planEntryId = searchParams.get("planEntry");
+  const plannedServings = Number(searchParams.get("servings")) || null;
+  const markMealCooked = useMarkMealCooked();
+  const [planPrompt, setPlanPrompt] = useState<{ cookEventId: string; candidates: MealPlanEntry[] } | null>(null);
+  // The cook is done but linking it to the planned meal failed: keep the cook
+  // id so the link alone can be retried, without cooking (or deducting) again.
+  const [planLinkFailed, setPlanLinkFailed] = useState<{ entryId: string; cookEventId: string } | null>(null);
 
   const recipeQuery = useQuery({
     queryKey: ["recipe", recipeId],
@@ -134,9 +146,9 @@ export function CookAlongPage() {
   useEffect(() => {
     if (recipe && !seededServings.current) {
       seededServings.current = true;
-      setServingsMade(recipe.servings ?? 1);
+      setServingsMade(plannedServings ?? recipe.servings ?? 1);
     }
-  }, [recipe]);
+  }, [recipe, plannedServings]);
 
   // A session already under way — started here earlier, or by an agent — is
   // offered, never silently replaced.
@@ -303,10 +315,43 @@ export function CookAlongPage() {
               .join(", ")} (used what was there)`
           : `Cooked ${recipe?.name ?? "recipe"} — ${made}`,
       );
-      navigate(`/recipes/${recipeId}`);
+      await afterCooked(String(result.cook?.cook_event_id ?? ""));
     } catch (err) {
       setFinishError(getApiErrorMessage(err, "Could not finish that cook"));
     }
+  };
+
+  const linkPlannedMeal = async (entryId: string, cookEventId: string) => {
+    try {
+      await markMealCooked.mutateAsync({ entryId, cookEventId });
+      setPlanLinkFailed(null);
+      navigate(ROUTES.mealPlan);
+    } catch {
+      setPlanLinkFailed({ entryId, cookEventId });
+    }
+  };
+
+  /** Tie the finished cook to the meal plan (#32). Started from the plan → mark
+   *  that meal cooked. Otherwise, if this recipe is planned today, ask first;
+   *  never link without the person saying so. The cook itself is already done,
+   *  so a meal-plan hiccup only costs the link, never the cook. */
+  const afterCooked = async (cookEventId: string) => {
+    if (!cookEventId || !recipeId) {
+      navigate(`/recipes/${recipeId}`);
+      return;
+    }
+    if (planEntryId) {
+      await linkPlannedMeal(planEntryId, cookEventId);
+      return;
+    }
+    let candidates: MealPlanEntry[] = [];
+    try {
+      candidates = await fetchCookCandidates(recipeId, todayLocal());
+    } catch {
+      candidates = [];
+    }
+    if (candidates.length > 0) setPlanPrompt({ cookEventId, candidates });
+    else navigate(`/recipes/${recipeId}`);
   };
 
   const handleQuit = () => navigate(`/recipes/${recipeId}`);
@@ -710,6 +755,35 @@ export function CookAlongPage() {
             the steps and set timers too.
           </Text>
         </>
+      )}
+      {planLinkFailed && (
+        <Alert color="yellow" title="Cooked, but not marked on the meal plan">
+          <Stack gap="xs">
+            <Text size="sm">The cook is saved. Only the meal plan update failed.</Text>
+            <Group gap="xs">
+              <Button
+                size="xs"
+                loading={markMealCooked.isPending}
+                onClick={() => linkPlannedMeal(planLinkFailed.entryId, planLinkFailed.cookEventId)}
+              >
+                Try again
+              </Button>
+              <Button size="xs" variant="default" onClick={() => navigate(`/recipes/${recipeId}`)}>
+                Skip
+              </Button>
+            </Group>
+          </Stack>
+        </Alert>
+      )}
+      {planPrompt && (
+        <PlannedCookPrompt
+          candidates={planPrompt.candidates}
+          cookEventId={planPrompt.cookEventId}
+          onDone={() => {
+            setPlanPrompt(null);
+            navigate(`/recipes/${recipeId}`);
+          }}
+        />
       )}
     </Stack>
   );
