@@ -42,7 +42,7 @@ it("keeps backend identity and source, then saves edited review in one structure
   await user.click(screen.getByRole("button", { name: "Check current recipe" }));
   await user.click(await screen.findByRole("checkbox", { name: /I checked the source/ }));
   await user.click(screen.getByRole("button", { name: "Save Recipe" }));
-  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(post).toHaveBeenCalledWith("/api/recipes/import-reviewed", expect.anything()));
   expect(post).toHaveBeenCalledWith("/api/recipes/import-reviewed", expect.objectContaining({ confirmed: true, reviewed_input_hash: "current-hash", recipe: expect.objectContaining({
     source: "image", source_filename: "bread.png", source_text: "Original recipe", create_missing_items: true,
     ingredients: [
@@ -180,4 +180,24 @@ it("only requests optional classifier hints explicitly and keeps manual confirma
   await user.click(screen.getByRole("button", { name: "Save Recipe" }));
   await waitFor(() => expect(post).toHaveBeenCalledWith("/api/recipes/import-reviewed", expect.objectContaining({ reviewed_input_hash: "manual-hash", confirmed: true })));
   expect(post.mock.calls.filter((args) => args[0] === "/api/recipes/import-review")).toHaveLength(1);
+});
+
+it("re-checks automatically after edits so Save unlocks without re-clicking Check current recipe", async () => {
+  const user = await review();
+  const quantity = screen.getAllByRole("textbox", { name: "ingredient quantity" })[0];
+  await user.clear(quantity);
+  await user.type(quantity, "3");
+  expect(screen.getByRole("button", { name: "Save Recipe" })).toBeDisabled();
+  await user.click(await screen.findByRole("checkbox", { name: /I checked the source/ }, { timeout: 3000 }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Save Recipe" })).toBeEnabled());
+  await user.click(screen.getByRole("button", { name: "Save Recipe" }));
+  await waitFor(() => expect(post).toHaveBeenCalledWith("/api/recipes/import-reviewed", expect.objectContaining({ confirmed: true })));
+});
+
+it("a manual check started before the auto-check fires is not discarded by it", async () => {
+  const user = await review();
+  await user.click(screen.getByRole("button", { name: "Check current recipe" }));
+  await screen.findByRole("checkbox", { name: /I checked the source/ });
+  await new Promise((r) => setTimeout(r, 800));
+  expect(post.mock.calls.filter((c) => c[0] === "/api/recipes/import-preview")).toHaveLength(1);
 });
