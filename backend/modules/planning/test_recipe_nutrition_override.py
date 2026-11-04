@@ -153,7 +153,15 @@ def test_write_guard_rejects_unauthorized_identities(client: httpx.Client) -> No
     with SessionLocal() as db:
         create_user(db, email="member@example.com", password="MemberPass987!", role="member")
     member = client.post("/api/auth/login", json={"email": "member@example.com", "password": "MemberPass987!"})
-    cases["member"] = ({"Authorization": "Bearer " + member.json()["token"]}, 403)
+    member_token = member.json()["token"]
+    cases["member"] = ({"Authorization": "Bearer " + member_token}, 403)
+    # A member can mint their own write-scoped agent key; it must not carry
+    # more authority than the member does.
+    member_key = client.post(
+        "/api/agent-keys", json={"name": "member-key"}, headers={"Authorization": "Bearer " + member_token}
+    )
+    assert member_key.status_code == 200, member_key.text
+    cases["member's write agent key"] = ({"X-Agent-Key": member_key.json()["secret"]}, 403)
 
     for name, (headers, expected) in cases.items():
         assert client.put(_url(recipe), json=_OVERRIDE, headers=headers).status_code == expected, name

@@ -189,7 +189,8 @@ async def require_write_credential(
     """Strict guard for curated-data writes (issue #51): never the kiosk fallback.
 
     Accepts exactly two identities:
-      * a valid agent key carrying the ``write`` scope (read-only keys → 403);
+      * a valid agent key carrying the ``write`` scope (read-only keys → 403)
+        and owned by a provisioned admin (a member's own key → 403);
       * a real, provisioned admin bearer login (via ``require_authenticated_admin``).
 
     Anything else is refused — no credential (401), an invalid/revoked agent key
@@ -204,5 +205,9 @@ async def require_write_credential(
         agent_user, key = resolved
         if "write" not in scope_set(key.scopes):
             raise HTTPException(status_code=403, detail="Agent key lacks the 'write' scope")
+        # Any user can mint their own agent key, so a key carries no more
+        # authority than its owner: it must belong to a real, provisioned admin.
+        if agent_user.role != "admin" or not agent_user.is_provisioned:
+            raise HTTPException(status_code=403, detail="Agent key owner is not an admin")
         return agent_user
     return await require_authenticated_admin(authorization, db)
