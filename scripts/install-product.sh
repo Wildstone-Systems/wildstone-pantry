@@ -9,6 +9,8 @@
 # $PANTRYOS_HOME (default ~/.pantryos), starts the stack, waits for health,
 # and prints the LAN address. Re-running preserves existing secrets/data.
 # Set DRY_RUN=1 to print what would happen without touching Docker.
+# Set BUILD_FROM_SOURCE=1 (what scripts/install.sh does) to build the image from
+# this checkout instead of pulling the published one.
 
 set -euo pipefail
 
@@ -17,6 +19,8 @@ PANTRYOS_PORT="${PANTRYOS_PORT:-8420}"
 PANTRYOS_IMAGE="${PANTRYOS_IMAGE:-ghcr.io/wildstone-systems/pantryos:stable}"
 COMPOSE_URL="${COMPOSE_URL:-https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/main/docker-compose.product.yml}"
 DRY_RUN="${DRY_RUN:-0}"
+BUILD_FROM_SOURCE="${BUILD_FROM_SOURCE:-0}"
+REPO_ROOT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd || true)"
 
 say() { echo "[pantryos] $*"; }
 die() { echo "[pantryos] ERROR: $*" >&2; exit 1; }
@@ -63,17 +67,29 @@ else
 fi
 
 # 3. Compose file (refreshed each run; pinned by env) ---------------------------
-if [ -f "$(dirname "$0")/../docker-compose.product.yml" ]; then
-  cp "$(dirname "$0")/../docker-compose.product.yml" "$COMPOSE_FILE"
+if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/docker-compose.product.yml" ]; then
+  cp "$REPO_ROOT/docker-compose.product.yml" "$COMPOSE_FILE"
+elif [ "$BUILD_FROM_SOURCE" = "1" ]; then
+  die "BUILD_FROM_SOURCE=1 needs a source checkout (docker-compose.product.yml not found)."
 else
   say "Fetching compose file"
   run curl -fsSL "$COMPOSE_URL" -o "$COMPOSE_FILE"
 fi
 
 # 4. Start ---------------------------------------------------------------------
-say "Downloading and starting PantryOS (first run can take a few minutes)"
-run docker compose --project-directory "$PANTRYOS_HOME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull
-run docker compose --project-directory "$PANTRYOS_HOME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+if [ "$BUILD_FROM_SOURCE" = "1" ]; then
+  # Build from the checkout: project dir = repo root so `build: context: .`
+  # resolves; fixed project name so data volumes match the pull-based install.
+  # Local tag so we never shadow the published :stable image.
+  export PANTRYOS_IMAGE=pantryos:local
+  say "Building and starting PantryOS from source (first run can take several minutes)"
+  run docker compose -p pantryos --project-directory "$REPO_ROOT" --env-file "$ENV_FILE" \
+    -f "$REPO_ROOT/docker-compose.product.yml" up --build -d
+else
+  say "Downloading and starting PantryOS (first run can take a few minutes)"
+  run docker compose --project-directory "$PANTRYOS_HOME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull
+  run docker compose --project-directory "$PANTRYOS_HOME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+fi
 
 # 5. Health wait ----------------------------------------------------------------
 if [ "$DRY_RUN" != "1" ]; then

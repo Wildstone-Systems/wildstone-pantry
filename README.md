@@ -76,9 +76,10 @@ Built as a feature-sliced **modular monolith** (see `ARCHITECTURE.md`):
 - `GET /api/purchases`
 - `GET /api/purchases/{purchase_id}`
 
-## Run With Docker
+## Local development (Docker, hot reload)
 
-From repo root:
+Development only — Vite dev server, well-known credentials. To install
+PantryOS, see [Quick Install](#quick-install) instead. From repo root:
 
 ```bash
 docker compose up --build
@@ -99,7 +100,7 @@ Testers can install from the release bundle:
   compose, `.env.example`, install guide), attached to every GitHub Release by
   the Release workflow.
 
-### One-command install (Linux / NAS / Raspberry Pi)
+### One-command install without a checkout (Linux / NAS / Raspberry Pi)
 
 Review the script before piping it to a shell:
 
@@ -175,9 +176,16 @@ To let browser clients on other hosts call the API cross-origin, set
 
 ## Quick Install
 
+From a source checkout (builds the production image locally):
+
 ```bash
 ./scripts/install.sh
 ```
+
+Same as the one-command installer below, but builds from your checkout instead
+of pulling the published image: generates secrets into `~/.pantryos`, starts the
+production stack, waits for health, and prints the URL
+(`http://localhost:8420`). Re-running keeps existing secrets and data.
 
 ## Local Backend Run (without Docker)
 
