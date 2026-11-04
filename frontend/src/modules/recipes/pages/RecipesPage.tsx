@@ -7,6 +7,7 @@ import {
   FileButton,
   Group,
   Modal,
+  SegmentedControl,
   Select,
   Stack,
   Table,
@@ -27,6 +28,7 @@ import { SortableTh, applySort, toggleSort, type SortState } from "@/components/
 import { IngredientMatchBanner } from "../components/IngredientMatchBanner";
 import { ROUTES } from "@/routes/paths";
 import { useAppState } from "@/state/AppStateProvider";
+import { RecipeCardGrid } from "../components/RecipeCardGrid";
 import { RecipeAvailabilityModal } from "../components/RecipeAvailabilityModal";
 import { RecipeImportSearch } from "../components/RecipeImportSearch";
 import { RecipeThumb } from "../components/RecipeThumb";
@@ -43,6 +45,17 @@ import {
 
 /** Sentinel for the "everywhere" option — Mantine Select cannot hold a null value. */
 const ALL_LOCATIONS = "__all__";
+
+/** Per-browser memory of Cards vs Table. Storage can be blocked — never let that break the page. */
+const VIEW_STORAGE_KEY = "recipes.view";
+type RecipesView = "cards" | "table";
+function readStoredView(): RecipesView {
+  try {
+    return window.localStorage.getItem(VIEW_STORAGE_KEY) === "table" ? "table" : "cards";
+  } catch {
+    return "cards";
+  }
+}
 
 export function RecipesPage() {
   const navigate = useNavigate();
@@ -67,6 +80,15 @@ export function RecipesPage() {
 
   const [importText, setImportText] = useState("");
   const [importOpen, setImportOpen] = useState(false);
+  const [view, setView] = useState<RecipesView>(readStoredView);
+  const changeView = (next: RecipesView) => {
+    setView(next);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    } catch {
+      // Storage unavailable (private mode etc.) — the choice just won't persist.
+    }
+  };
   const [searchOpen, setSearchOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Recipe | null>(null);
   const [availabilityRecipe, setAvailabilityRecipe] = useState<Recipe | null>(null);
@@ -76,15 +98,14 @@ export function RecipesPage() {
   const deleteRecipe = useDeleteRecipe();
   const cookRecipe = useCookRecipe();
 
-  const busy =
-    parseText.isPending || parseImage.isPending || deleteRecipe.isPending || cookRecipe.isPending;
+  const busy = parseText.isPending || parseImage.isPending || deleteRecipe.isPending || cookRecipe.isPending;
 
   const locationOptions = useMemo(
     () => [
       { value: ALL_LOCATIONS, label: "All locations" },
       ...locations.map((location) => ({ value: location.id, label: location.name })),
     ],
-    [locations],
+    [locations]
   );
 
   /**
@@ -127,9 +148,7 @@ export function RecipesPage() {
         note: null,
       });
       setStatus(
-        effectiveLocationId
-          ? `Cooked ${recipe.name}`
-          : `Cooked ${recipe.name} — ingredients taken first-expiring-first`,
+        effectiveLocationId ? `Cooked ${recipe.name}` : `Cooked ${recipe.name} — ingredients taken first-expiring-first`
       );
     } catch (error) {
       setStatus(getApiErrorMessage(error, "Could not cook that recipe"));
@@ -148,11 +167,9 @@ export function RecipesPage() {
     }
   };
 
-  const scoreFor = (recipeId: string) =>
-    suggestions.find((row) => row.recipe_id === recipeId)?.available_score ?? null;
+  const scoreFor = (recipeId: string) => suggestions.find((row) => row.recipe_id === recipeId)?.available_score ?? null;
 
-  const missingFor = (recipeId: string) =>
-    suggestions.find((row) => row.recipe_id === recipeId)?.missing_items ?? [];
+  const missingFor = (recipeId: string) => suggestions.find((row) => row.recipe_id === recipeId)?.missing_items ?? [];
 
   // Sorting works on the DERIVED values (match score, missing count), not just
   // the raw record — "what can I actually cook tonight" is the useful ordering
@@ -167,7 +184,7 @@ export function RecipesPage() {
       }),
     // scoreFor/missingFor close over `suggestions`, so that's the real dep.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [recipes, suggestions, recipeSort],
+    [recipes, suggestions, recipeSort]
   );
 
   // Five columns can't fit a phone, and this page was called out as especially
@@ -187,7 +204,7 @@ export function RecipesPage() {
       <Badge color={score === 1 ? "green" : score >= 0.5 ? "yellow" : "gray"}>{(score * 100).toFixed(0)}%</Badge>
     );
 
-  const recipeActions = (recipe: Recipe, count: number) => (
+  const recipeActions = (recipe: Recipe, count: number, { compact = false } = {}) => (
     <Group gap="xs" wrap="nowrap">
       <Tooltip label="Check ingredients / match to stock">
         <ActionIcon
@@ -218,16 +235,18 @@ export function RecipesPage() {
           <ChefHat size={16} />
         </ActionIcon>
       </Tooltip>
-      <Tooltip label={count === 0 ? "Add ingredients first" : "Cook along — scale, adjust, step through"}>
-        <ActionIcon
-          variant="subtle"
-          aria-label={`Cook along with ${recipe.name}`}
-          disabled={count === 0}
-          onClick={() => navigate(`/recipes/${recipe.id}/cook`)}
-        >
-          <PlayCircle size={16} />
-        </ActionIcon>
-      </Tooltip>
+      {!compact && (
+        <Tooltip label={count === 0 ? "Add ingredients first" : "Cook along — scale, adjust, step through"}>
+          <ActionIcon
+            variant="subtle"
+            aria-label={`Cook along with ${recipe.name}`}
+            disabled={count === 0}
+            onClick={() => navigate(`/recipes/${recipe.id}/cook`)}
+          >
+            <PlayCircle size={16} />
+          </ActionIcon>
+        </Tooltip>
+      )}
       <Tooltip label="Delete">
         <ActionIcon
           variant="subtle"
@@ -276,8 +295,8 @@ export function RecipesPage() {
         <Alert color="blue" variant="light">
           <Group justify="space-between" wrap="wrap">
             <Text size="sm">
-              You have {(adHocDrafts.data ?? []).length === 1 ? "a cook" : "cooks"} in progress —
-              nothing has been deducted yet.
+              You have {(adHocDrafts.data ?? []).length === 1 ? "a cook" : "cooks"} in progress — nothing has been
+              deducted yet.
             </Text>
             <Button size="xs" onClick={() => navigate(ROUTES.cook)}>
               Resume
@@ -287,9 +306,18 @@ export function RecipesPage() {
       )}
 
       <Card withBorder>
-        <Title order={3} mb="xs">
-          Your Recipes
-        </Title>
+        <Group justify="space-between" mb="sm" wrap="wrap">
+          <Title order={3}>Your Recipes</Title>
+          <SegmentedControl
+            aria-label="Recipe view"
+            value={view}
+            onChange={(v) => changeView(v as RecipesView)}
+            data={[
+              { value: "cards", label: "Cards" },
+              { value: "table", label: "Table" },
+            ]}
+          />
+        </Group>
 
         {recipesQuery.isLoading ? (
           <Text size="sm" c="dimmed">
@@ -299,120 +327,127 @@ export function RecipesPage() {
           <Text size="sm" c="dimmed">
             No recipes yet. Add one by hand, or use Import a Recipe or Find Recipe Online above.
           </Text>
+        ) : view === "cards" ? (
+          <RecipeCardGrid
+            recipes={recipes}
+            scoreFor={scoreFor}
+            missingFor={missingFor}
+            onOpen={(recipe) => navigate(`/recipes/${recipe.id}`)}
+            onCookAlong={(recipe) => navigate(`/recipes/${recipe.id}/cook`)}
+            renderActions={(recipe, count) => recipeActions(recipe, count, { compact: true })}
+          />
+        ) : isMobile ? (
+          <Stack gap="xs">
+            {recipes.map((recipe) => {
+              const score = scoreFor(recipe.id);
+              const missing = missingFor(recipe.id);
+              const count = recipe.ingredient_count ?? 0;
+              return (
+                <Card
+                  key={recipe.id}
+                  withBorder
+                  padding="sm"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => navigate(`/recipes/${recipe.id}`)}
+                >
+                  {/* The picture is what makes you want to cook it — lead with it. */}
+                  <Card.Section mb="sm">
+                    <RecipeThumb src={recipe.image_src} h={160} />
+                  </Card.Section>
+                  <Group justify="space-between" wrap="nowrap" align="flex-start">
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <Text fw={600} lineClamp={2}>
+                        {recipe.name}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {count === 0 ? "no ingredients yet" : `${count} ingredient${count === 1 ? "" : "s"}`}
+                      </Text>
+                    </div>
+                    {scoreBadge(score)}
+                  </Group>
+                  <Text size="sm" mt={6} c={missing.length ? undefined : "dimmed"}>
+                    Missing: {missing.length ? missing.join(", ") : "nothing"}
+                  </Text>
+                  <Group mt="sm" onClick={(e) => e.stopPropagation()}>
+                    {recipeActions(recipe, count)}
+                  </Group>
+                </Card>
+              );
+            })}
+          </Stack>
         ) : (
-          isMobile ? (
-            <Stack gap="xs">
-              {recipes.map((recipe) => {
-                const score = scoreFor(recipe.id);
-                const missing = missingFor(recipe.id);
-                const count = recipe.ingredient_count ?? 0;
-                return (
-                  <Card
-                    key={recipe.id}
-                    withBorder
-                    padding="sm"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => navigate(`/recipes/${recipe.id}`)}
-                  >
-                    {/* The picture is what makes you want to cook it — lead with it. */}
-                    <Card.Section mb="sm">
-                      <RecipeThumb src={recipe.image_src} h={160} />
-                    </Card.Section>
-                    <Group justify="space-between" wrap="nowrap" align="flex-start">
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <Text fw={600} lineClamp={2}>
-                          {recipe.name}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          {count === 0 ? "no ingredients yet" : `${count} ingredient${count === 1 ? "" : "s"}`}
-                        </Text>
-                      </div>
-                      {scoreBadge(score)}
-                    </Group>
-                    <Text size="sm" mt={6} c={missing.length ? undefined : "dimmed"}>
-                      Missing: {missing.length ? missing.join(", ") : "nothing"}
-                    </Text>
-                    <Group mt="sm" onClick={(e) => e.stopPropagation()}>
-                      {recipeActions(recipe, count)}
-                    </Group>
-                  </Card>
-                );
-              })}
-            </Stack>
-          ) : (
-            /* No ScrollContainer: the table fits the card at every width the
+          /* No ScrollContainer: the table fits the card at every width the
                table branch renders at (narrower falls back to the stacked
                cards above), so a sideways scroll would only ever hide the
                Actions column. Fixed layout so the sized columns hold; Recipe
                takes the remainder and Missing is capped at a slice of the
                width — both truncate with the full text in the tooltip. */
-            <Table striped highlightOnHover withTableBorder style={{ tableLayout: "fixed" }}>
-              <Table.Thead>
-                <Table.Tr>
-                  <SortableTh label="Recipe" sortKey="name" sort={recipeSort} onSort={onRecipeSort} />
-                  <SortableTh
-                    label="Ingredients"
-                    sortKey="ingredient_count"
-                    sort={recipeSort}
-                    onSort={onRecipeSort}
-                    w={100}
-                  />
-                  <SortableTh label="Can make now" sortKey="score" sort={recipeSort} onSort={onRecipeSort} w={120} />
-                  <SortableTh label="Missing" sortKey="missing" sort={recipeSort} onSort={onRecipeSort} w="18%" />
-                  {/* 5 ActionIcons (28px) + 4 xs gaps (8px) + md cell padding (16px
+          <Table striped highlightOnHover withTableBorder style={{ tableLayout: "fixed" }}>
+            <Table.Thead>
+              <Table.Tr>
+                <SortableTh label="Recipe" sortKey="name" sort={recipeSort} onSort={onRecipeSort} />
+                <SortableTh
+                  label="Ingredients"
+                  sortKey="ingredient_count"
+                  sort={recipeSort}
+                  onSort={onRecipeSort}
+                  w={100}
+                />
+                <SortableTh label="Can make now" sortKey="score" sort={recipeSort} onSort={onRecipeSort} w={120} />
+                <SortableTh label="Missing" sortKey="missing" sort={recipeSort} onSort={onRecipeSort} w="18%" />
+                {/* 5 ActionIcons (28px) + 4 xs gaps (8px) + md cell padding (16px
                       each side) need ~204px; 170px was sized for 4 icons and clipped
                       the 5th ("Cook along") past the Card's overflow:hidden edge. */}
-                  <Table.Th w={210} style={{ whiteSpace: "nowrap" }}>
-                    Actions
-                  </Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {sortedRecipes.map((recipe) => {
-                  const score = scoreFor(recipe.id);
-                  const missing = missingFor(recipe.id);
-                  const count = recipe.ingredient_count ?? 0;
-                  return (
-                    <Table.Tr
-                      key={recipe.id}
-                      style={{ cursor: "pointer" }}
-                      onClick={() => navigate(`/recipes/${recipe.id}`)}
-                    >
-                      <Table.Td>
-                        <Group gap="xs" wrap="nowrap">
-                          <RecipeThumb src={recipe.image_src} w={64} h={64} radius={6} />
-                          <Text size="sm" truncate title={recipe.name}>
-                            {recipe.name}
-                          </Text>
-                        </Group>
-                      </Table.Td>
-                      <Table.Td>
-                        {count === 0 ? (
-                          <Badge color="gray" variant="light">
-                            none yet
-                          </Badge>
-                        ) : (
-                          count
-                        )}
-                      </Table.Td>
-                      <Table.Td>{scoreBadge(score)}</Table.Td>
-                      <Table.Td>
-                        <Text
-                          size="sm"
-                          truncate
-                          c={missing.length ? undefined : "dimmed"}
-                          title={missing.length ? missing.join(", ") : undefined}
-                        >
-                          {missing.length ? missing.join(", ") : "nothing"}
+                <Table.Th w={210} style={{ whiteSpace: "nowrap" }}>
+                  Actions
+                </Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {sortedRecipes.map((recipe) => {
+                const score = scoreFor(recipe.id);
+                const missing = missingFor(recipe.id);
+                const count = recipe.ingredient_count ?? 0;
+                return (
+                  <Table.Tr
+                    key={recipe.id}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => navigate(`/recipes/${recipe.id}`)}
+                  >
+                    <Table.Td>
+                      <Group gap="xs" wrap="nowrap">
+                        <RecipeThumb src={recipe.image_src} w={64} h={64} radius={6} />
+                        <Text size="sm" truncate title={recipe.name}>
+                          {recipe.name}
                         </Text>
-                      </Table.Td>
-                      <Table.Td onClick={(e) => e.stopPropagation()}>{recipeActions(recipe, count)}</Table.Td>
-                    </Table.Tr>
-                  );
-                })}
-              </Table.Tbody>
-            </Table>
-          )
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>
+                      {count === 0 ? (
+                        <Badge color="gray" variant="light">
+                          none yet
+                        </Badge>
+                      ) : (
+                        count
+                      )}
+                    </Table.Td>
+                    <Table.Td>{scoreBadge(score)}</Table.Td>
+                    <Table.Td>
+                      <Text
+                        size="sm"
+                        truncate
+                        c={missing.length ? undefined : "dimmed"}
+                        title={missing.length ? missing.join(", ") : undefined}
+                      >
+                        {missing.length ? missing.join(", ") : "nothing"}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td onClick={(e) => e.stopPropagation()}>{recipeActions(recipe, count)}</Table.Td>
+                  </Table.Tr>
+                );
+              })}
+            </Table.Tbody>
+          </Table>
         )}
 
         {effectiveLocationId === null && recipes.length > 0 && (
@@ -422,13 +457,7 @@ export function RecipesPage() {
         )}
       </Card>
 
-
-      <Modal
-        opened={importOpen}
-        onClose={() => setImportOpen(false)}
-        title="Import a Recipe"
-        size="lg"
-      >
+      <Modal opened={importOpen} onClose={() => setImportOpen(false)} title="Import a Recipe" size="lg">
         <Text size="sm" c="dimmed" mb="sm">
           Photo, PDF or pasted text. You get to review and correct everything before it saves.
         </Text>
@@ -443,8 +472,7 @@ export function RecipesPage() {
               )}
             </FileButton>
             <Text size="xs" c="dimmed">
-              On a phone this offers the camera. PDFs with selectable text read best; scans fall
-              back to OCR.
+              On a phone this offers the camera. PDFs with selectable text read best; scans fall back to OCR.
             </Text>
           </Stack>
 
@@ -457,23 +485,14 @@ export function RecipesPage() {
               placeholder={"Ingredients:\n1 cup flour\n2 eggs\n\nSteps:\n1. Mix and bake."}
               disabled={busy}
             />
-            <Button
-              onClick={handleParseText}
-              disabled={busy || !importText.trim()}
-              loading={parseText.isPending}
-            >
+            <Button onClick={handleParseText} disabled={busy || !importText.trim()} loading={parseText.isPending}>
               Parse Text
             </Button>
           </Stack>
         </Stack>
       </Modal>
 
-      <Modal
-        opened={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        title="Find a Recipe Online"
-        size="xl"
-      >
+      <Modal opened={searchOpen} onClose={() => setSearchOpen(false)} title="Find a Recipe Online" size="xl">
         <RecipeImportSearch embedded />
       </Modal>
 
@@ -483,15 +502,11 @@ export function RecipesPage() {
         onClose={() => setAvailabilityRecipe(null)}
       />
 
-      <Modal
-        opened={pendingDelete !== null}
-        onClose={() => setPendingDelete(null)}
-        title="Delete recipe?"
-      >
+      <Modal opened={pendingDelete !== null} onClose={() => setPendingDelete(null)} title="Delete recipe?">
         <Stack>
           <Alert color="red" variant="light">
-            <b>{pendingDelete?.name}</b> and its ingredient list will be removed. Inventory you have
-            already cooked is not affected. This cannot be undone.
+            <b>{pendingDelete?.name}</b> and its ingredient list will be removed. Inventory you have already cooked is
+            not affected. This cannot be undone.
           </Alert>
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setPendingDelete(null)}>
