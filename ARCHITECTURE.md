@@ -20,8 +20,24 @@ backend/
   conftest.py           # SQLite test harness
 ```
 
-Target domain modules (migration in progress, ADR 0001 Phase 2):
-**catalog · inventory · shopping · planning · tasks · automation**.
+Domain modules (`backend/modules/`):
+
+| Module | Owns |
+|---|---|
+| `catalog` | Products, barcodes, unit conversions, data quality |
+| `inventory` | Stock by location, lots/containers, waste, transaction log |
+| `shopping` | Shopping list, receipts, purchases, retailer connectors |
+| `planning` | Recipes, ingredient matching, substitutions, cooking |
+| `mealplan` | Meal calendar, nutrition, shopping gaps, calendar feed |
+| `automation` | AI providers, receipt/recipe parsing, OCR, classifiers |
+| `agent` | Agent-facing API used by the MCP server |
+| `wildstone` | Optional Wildstone Home Lab integration |
+
+Platform features (auth, OIDC, setup, household, backups, feedback, health)
+live in `app/routes` + `app/services`.
+
+The MCP server (`backend/mcp_server/`) is a separate process that talks to the
+REST API with an agent key.
 
 ### Rules
 - **Routes → services → repository → ORM.** No direct DB access from routes.
@@ -48,6 +64,7 @@ frontend/src/
   modules/<domain>/     # feature folders: pages/, hooks/, (components/)
   api/                  # axios client + typed React Query hooks
   routes/               # central route config (lazy-loaded module pages)
+  components/           # shared UI building blocks
   theme/                # Mantine theme tokens
 ```
 Server state via React Query; a single axios client; Mantine v7 UI.
@@ -55,3 +72,5 @@ Server state via React Query; a single axios client; Mantine v7 UI.
 ## CI
 `.github/workflows/ci.yml` — backend (config guards, in-process tests, ruff/mypy/
 bandit non-blocking) and frontend (lint, vitest, build).
+`release.yml` publishes the product image on `v*` tags; `launcher.yml` builds
+the desktop launcher.
