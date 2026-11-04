@@ -185,3 +185,30 @@ def test_deleting_a_recipe_takes_its_picture_with_it(client, recipe):
         assert db.query(RecipeImage).filter_by(recipe_id=uuid.UUID(recipe["id"])).count() == 0
     finally:
         db.close()
+
+
+def test_dashboard_suggestions_carry_pictures(client):
+    """The dashboard's "Cook tonight" cards show the dish, not just its name —
+    same precedence as everywhere else (uploaded beats imported)."""
+    item = client.post("/api/items", json={"name": f"Rice {uuid.uuid4().hex[:6]}"}).json()["id"]
+
+    def _with_ingredient(name: str, image_url: str | None) -> str:
+        rid = client.post(
+            "/api/recipes", json={"name": name, "servings": 2, "image_url": image_url}
+        ).json()["id"]
+        put = client.put(
+            f"/api/recipes/{rid}/ingredients",
+            json=[{"item_id": item, "quantity_required": 1, "unit": "cup"}],
+        )
+        assert put.status_code in (200, 201), put.text
+        return rid
+
+    imported = _with_ingredient(f"Imported {uuid.uuid4().hex[:6]}", "https://example.test/a.jpg")
+    uploaded = _with_ingredient(f"Uploaded {uuid.uuid4().hex[:6]}", "https://example.test/b.jpg")
+    bare = _with_ingredient(f"Bare {uuid.uuid4().hex[:6]}", None)
+    client.post(f"/api/recipes/{uploaded}/image", files={"file": ("d.png", _png(), "image/png")})
+
+    rows = {r["recipe_id"]: r for r in client.get("/api/recipes/suggestions").json()["suggestions"]}
+    assert rows[imported]["image_src"] == "https://example.test/a.jpg"
+    assert rows[uploaded]["image_src"] == f"/api/recipes/{uploaded}/image"
+    assert rows[bare]["image_src"] is None

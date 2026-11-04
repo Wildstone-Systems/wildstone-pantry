@@ -14,6 +14,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart2, Check, ChefHat, Clock, Minus, Plus, Utensils } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "@/api/client";
 import { getApiErrorMessage } from "@/api/errors";
@@ -21,6 +22,7 @@ import { QuantityStepper } from "@/components/QuantityStepper";
 import { ActionConsole } from "@/components/ActionConsole";
 import { LocationPill } from "@/components/LocationPill";
 import { useItems, useLocations } from "@/modules/catalog";
+import { RecipeThumb } from "@/modules/recipes";
 import { useShoppingList } from "@/modules/shopping";
 import { useAppState } from "@/state/AppStateProvider";
 
@@ -441,10 +443,16 @@ export function DashboardPage() {
           {recipes.map((recipe) => {
             const missing = recipe.missing_items.length;
             return (
-              <Card key={recipe.recipe_id} padding={0} style={{ background: "var(--pantry-surface)", overflow: "hidden" }}>
-                <Box className="pantry-photo" style={{ height: 90, fontSize: 11 }}>
-                  {recipe.recipe_name}
-                </Box>
+              <Card
+                key={recipe.recipe_id}
+                component={Link}
+                to={`/recipes/${recipe.recipe_id}`}
+                aria-label={`Open recipe: ${recipe.recipe_name}`}
+                padding={0}
+                className="pantry-recipe-card"
+                style={{ background: "var(--pantry-surface)", overflow: "hidden", color: "inherit", textDecoration: "none" }}
+              >
+                <RecipeThumb src={recipe.image_src} h={140} />
                 <Box p="sm">
                   <Text fw={700} size="sm">
                     {recipe.recipe_name}
