@@ -11,7 +11,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from modules.mealplan.models import MealPlanEntry
+from modules.mealplan.models import MealPlanEntry, MealPlanExcludedItem
 
 
 def get_entry(db: Session, entry_id: UUID) -> MealPlanEntry | None:
@@ -57,3 +57,18 @@ def add(db: Session, entry: MealPlanEntry) -> MealPlanEntry:
 
 def delete(db: Session, entry: MealPlanEntry) -> None:
     db.delete(entry)
+
+
+# --- always-skipped ingredients (#31) -------------------------------------------
+
+
+def list_excluded(db: Session) -> list[MealPlanExcludedItem]:
+    return list(db.scalars(select(MealPlanExcludedItem).order_by(MealPlanExcludedItem.label)).all())
+
+
+def get_excluded(db: Session, excluded_id: UUID) -> MealPlanExcludedItem | None:
+    return db.get(MealPlanExcludedItem, excluded_id)
+
+
+def get_excluded_by_key(db: Session, key: str) -> MealPlanExcludedItem | None:
+    return db.scalar(select(MealPlanExcludedItem).where(MealPlanExcludedItem.key == key))
