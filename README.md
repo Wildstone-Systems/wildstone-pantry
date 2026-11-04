@@ -167,9 +167,11 @@ development mode by accident. That makes the backend refuse to boot on insecure
 defaults, so `DATABASE_URL` and `AUTH_PERSONAL_PASSWORD` must be
 real values — see `_validate_protected_env` in `app/core/config.py`.
 
-To reach the UI by hostname rather than IP, set `STAGING_ALLOWED_HOSTS` (feeds
-Vite's `allowedHosts`); to let browser clients on other hosts call the API
-cross-origin, set `CORS_ALLOW_ORIGINS`.
+The staging frontend is a production build served by nginx
+(`docker/Dockerfile.frontend.prod`, `docker/nginx.frontend.conf`), which also
+proxies `/api` to the backend, so the UI is reachable by any hostname or IP.
+To let browser clients on other hosts call the API cross-origin, set
+`CORS_ALLOW_ORIGINS`.
 
 ## Quick Install
 

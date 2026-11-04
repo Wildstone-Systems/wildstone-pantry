@@ -63,17 +63,16 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: docker/Dockerfile.frontend
+      # Built bundle served by nginx (gzip, long-cache assets, /api proxied to
+      # the backend) rather than the Vite dev server — much faster cold loads,
+      # especially over high-latency links. Host names are not restricted.
+      dockerfile: docker/Dockerfile.frontend.prod
     restart: unless-stopped
-    environment:
-      VITE_API_PROXY_TARGET: http://backend:8000
-      # Reachable by name over the LAN, not just by IP.
-      VITE_ALLOWED_HOSTS: ${STAGING_ALLOWED_HOSTS}
     depends_on:
       backend:
         condition: service_healthy
     ports:
-      - "0.0.0.0:25173:5173"
+      - "0.0.0.0:25173:80"
 
 volumes:
   pantryos_postgres_staging_data:

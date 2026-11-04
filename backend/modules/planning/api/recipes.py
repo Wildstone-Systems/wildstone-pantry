@@ -60,6 +60,7 @@ from modules.planning.services.recipe_images import (
     ImageRejected,
     delete_recipe_image,
     get_recipe_image,
+    image_src_for,
     recipes_with_uploads,
     resolve_image_src,
     set_recipe_image,
@@ -179,9 +180,7 @@ def list_recipes_route(db: Session = Depends(get_db)) -> list[RecipeListRead]:
             external_source=row["external_source"],
             external_id=row["external_id"],
             external_url=row["external_url"],
-            image_src=(
-                f"/api/recipes/{row['id']}/image" if row["id"] in uploaded else row["image_url"]
-            ),
+            image_src=image_src_for(row["id"], row["image_url"], has_upload=row["id"] in uploaded),
             ingredient_count=row["ingredient_count"],
         )
         for row in rows

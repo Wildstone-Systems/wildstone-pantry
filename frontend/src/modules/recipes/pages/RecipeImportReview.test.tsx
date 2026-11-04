@@ -80,7 +80,8 @@ describe("Recipe import review", () => {
       { initialEntries: ["/recipes"] },
     );
 
-    await user.click(screen.getByLabelText("Or paste recipe text"));
+    await user.click(screen.getByRole("button", { name: "Import a Recipe" }));
+    await user.click(await screen.findByLabelText("Or paste recipe text"));
     await user.paste("Ingredients:\n1 cup flour\n2 eggs\n\nSteps:\n1. Mix and bake.");
     await user.click(screen.getByRole("button", { name: "Parse Text" }));
 

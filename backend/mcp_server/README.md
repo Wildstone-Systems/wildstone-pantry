@@ -78,6 +78,14 @@ Point your MCP client at the command. For a stdio client the config looks like:
 `list_recipes`, `get_recipe`, `suggest_recipes`, `cook_recipe`,
 `consumption_trends`, `restock_suggestions`, `list_purchases`.
 
+Recipe authoring/import: `preview_recipe`, `create_recipe`,
+`parse_recipe_text` → `ingest_recipe` (pasted text, or text the agent extracted
+from a recipe web page), `search_external_recipes` → `get_external_recipe`.
+
+Meal plan: `list_meal_plan`, `plan_meal`, `update_planned_meal`,
+`remove_planned_meal`, `mark_planned_meal`, `meal_plan_shopping_gap`,
+`push_meal_plan_gap`.
+
 Cook-along (ADR 0026 §6) — step by step, nothing leaves the pantry until
 `finish_cooking`: `start_cooking`, `current_step`, `next_step`,
 `previous_step`, `go_to_step`, `finish_cooking`, `stop_cooking`.
