@@ -215,3 +215,21 @@ body {
     scroll-behavior: auto;
   }
 }
+
+/* Clickable recipe cards (dashboard "Cook tonight"): a small lift on hover and
+   a visible focus ring for keyboard users. */
+.pantry-recipe-card {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.pantry-recipe-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--mantine-shadow-md);
+}
+.pantry-recipe-card:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pantry-recipe-card { transition: none; }
+  .pantry-recipe-card:hover { transform: none; }
+}

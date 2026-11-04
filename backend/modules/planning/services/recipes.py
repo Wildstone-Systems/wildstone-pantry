@@ -44,6 +44,7 @@ from modules.inventory.services.inventory import (
     remove_inventory,
 )
 from modules.planning import repository as planning_repository
+from modules.planning.services.recipe_images import image_src_for, recipes_with_uploads
 from modules.planning.services.substitutions import (
     basis_matches,
     canonical_subs_by_from,
@@ -1941,6 +1942,7 @@ def suggest_recipes(db: Session, *, location_id: UUID | None = None) -> list[dic
             {
                 "recipe_id": recipe.id,
                 "recipe_name": recipe.name,
+                "_image_url": recipe.image_url,
                 "available_score": score,
                 # The raw counts behind the score, for "8/10 on hand" markers.
                 "have_count": available_count,
@@ -1948,6 +1950,14 @@ def suggest_recipes(db: Session, *, location_id: UUID | None = None) -> list[dic
                 "missing_items": missing_items,
                 "substitutions_used": substitutions_used,
             }
+        )
+
+    # Pictures resolved in one batched lookup (keys only, never blobs) so the
+    # dashboard can show the dish rather than just its name.
+    uploaded = recipes_with_uploads(db, [row["recipe_id"] for row in suggestions])
+    for row in suggestions:
+        row["image_src"] = image_src_for(
+            row["recipe_id"], row.pop("_image_url"), has_upload=row["recipe_id"] in uploaded
         )
 
     suggestions.sort(key=lambda row: row["available_score"], reverse=True)

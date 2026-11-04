@@ -6,7 +6,6 @@ import {
   Card,
   FileButton,
   Group,
-  Image,
   Modal,
   Select,
   Stack,
@@ -30,6 +29,7 @@ import { ROUTES } from "@/routes/paths";
 import { useAppState } from "@/state/AppStateProvider";
 import { RecipeAvailabilityModal } from "../components/RecipeAvailabilityModal";
 import { RecipeImportSearch } from "../components/RecipeImportSearch";
+import { RecipeThumb } from "../components/RecipeThumb";
 import type { Recipe, RecipeSuggestion, RecipeParseApiResponse } from "../hooks/recipes-hooks";
 import { useAdHocDrafts } from "../hooks/ad-hoc-hooks";
 import {
@@ -306,18 +306,11 @@ export function RecipesPage() {
                     style={{ cursor: "pointer" }}
                     onClick={() => navigate(`/recipes/${recipe.id}`)}
                   >
+                    {/* The picture is what makes you want to cook it — lead with it. */}
+                    <Card.Section mb="sm">
+                      <RecipeThumb src={recipe.image_src} h={160} />
+                    </Card.Section>
                     <Group justify="space-between" wrap="nowrap" align="flex-start">
-                      {recipe.image_src && (
-                        <Image
-                          src={recipe.image_src}
-                          alt=""
-                          w={56}
-                          h={56}
-                          fit="cover"
-                          radius="sm"
-                          style={{ flexShrink: 0 }}
-                        />
-                      )}
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <Text fw={600} lineClamp={2}>
                           {recipe.name}
@@ -379,17 +372,7 @@ export function RecipesPage() {
                     >
                       <Table.Td>
                         <Group gap="xs" wrap="nowrap">
-                          {recipe.image_src && (
-                            <Image
-                              src={recipe.image_src}
-                              alt=""
-                              w={36}
-                              h={36}
-                              fit="cover"
-                              radius="sm"
-                              style={{ flexShrink: 0 }}
-                            />
-                          )}
+                          <RecipeThumb src={recipe.image_src} w={64} h={64} radius={6} />
                           <Text size="sm" truncate title={recipe.name}>
                             {recipe.name}
                           </Text>
