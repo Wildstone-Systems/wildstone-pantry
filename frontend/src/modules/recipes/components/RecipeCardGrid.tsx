@@ -82,10 +82,14 @@ export function RecipeCardGrid({ recipes, scoreFor, missingFor, onOpen, onCookAl
     });
   }, [rows, filter, sort, query]);
 
-  const statusBadge = (bucket: RecipeFilter | null, missingCount: number) => {
+  // bucket === null means EITHER the recipe has no ingredients OR its stock
+  // match isn't known (still loading / request failed) — only the first is
+  // the user's to fix, so the count decides which message to show.
+  const statusBadge = (bucket: RecipeFilter | null, missingCount: number, ingredientCount: number) => {
     if (bucket === "ready") return <Badge color="green">Can make now</Badge>;
     if (bucket === "almost") return <Badge color="yellow">Missing {missingCount}</Badge>;
     if (bucket === "shop") return <Badge color="gray">Missing {missingCount}</Badge>;
+    if (ingredientCount > 0) return null;
     return (
       <Badge color="gray" variant="light">
         No ingredients yet
@@ -93,9 +97,11 @@ export function RecipeCardGrid({ recipes, scoreFor, missingFor, onOpen, onCookAl
     );
   };
 
-  const missingText = (bucket: RecipeFilter | null, missing: string[]) =>
+  const missingText = (bucket: RecipeFilter | null, missing: string[], ingredientCount: number) =>
     bucket === null
-      ? "Add ingredients to see what you're missing"
+      ? ingredientCount > 0
+        ? "Stock match not available yet"
+        : "Add ingredients to see what you're missing"
       : missing.length
         ? `Need: ${missing.join(", ")}`
         : "You have everything";
@@ -108,7 +114,7 @@ export function RecipeCardGrid({ recipes, scoreFor, missingFor, onOpen, onCookAl
             <div style={{ position: "relative", cursor: "pointer" }} onClick={() => onOpen(pick.recipe)}>
               <RecipeThumb src={pick.recipe.image_src} h={260} />
               <div style={{ position: "absolute", top: 12, left: 12 }}>
-                {statusBadge(pick.bucket, pick.missing.length)}
+                {statusBadge(pick.bucket, pick.missing.length, pick.count)}
               </div>
             </div>
             <Stack p="lg" gap="xs" justify="center">
@@ -118,7 +124,7 @@ export function RecipeCardGrid({ recipes, scoreFor, missingFor, onOpen, onCookAl
               <Title order={3}>{pick.recipe.name}</Title>
               <Text size="sm" c="dimmed">
                 {pick.count} ingredient{pick.count === 1 ? "" : "s"} · serves {pick.recipe.servings} ·{" "}
-                {missingText(pick.bucket, pick.missing)}
+                {missingText(pick.bucket, pick.missing, pick.count)}
               </Text>
               <Group mt="sm">
                 <Button onClick={() => onCookAlong(pick.recipe)}>Start cooking</Button>
@@ -189,13 +195,15 @@ export function RecipeCardGrid({ recipes, scoreFor, missingFor, onOpen, onCookAl
             >
               <Card.Section mb="sm" style={{ position: "relative" }}>
                 <RecipeThumb src={recipe.image_src} h={170} />
-                <div style={{ position: "absolute", top: 10, left: 10 }}>{statusBadge(bucket, missing.length)}</div>
+                <div style={{ position: "absolute", top: 10, left: 10 }}>
+                  {statusBadge(bucket, missing.length, count)}
+                </div>
               </Card.Section>
               <Text fw={600} lineClamp={1} title={recipe.name}>
                 {recipe.name}
               </Text>
               <Text size="xs" c="dimmed" lineClamp={1} title={missing.join(", ") || undefined}>
-                {missingText(bucket, missing)}
+                {missingText(bucket, missing, count)}
               </Text>
               <Group mt="sm" justify="space-between" wrap="wrap" gap="xs" onClick={(e) => e.stopPropagation()}>
                 <Button size="sm" style={{ flexShrink: 0 }} disabled={count === 0} onClick={() => onCookAlong(recipe)}>

@@ -76,4 +76,19 @@ describe("RecipeCardGrid", () => {
     expect(screen.queryByTestId("recipe-card")).toBeNull();
     expect(screen.getByText("No recipes match this filter.")).toBeInTheDocument();
   });
+
+  it("does not call a recipe empty when its stock match is still unknown", () => {
+    renderWithProviders(
+      <RecipeCardGrid
+        recipes={[recipe("a", "Chili", 4)]}
+        scoreFor={() => null}
+        missingFor={() => []}
+        onOpen={vi.fn()}
+        onCookAlong={vi.fn()}
+        renderActions={() => null}
+      />
+    );
+    expect(screen.queryByText("No ingredients yet")).toBeNull();
+    expect(screen.getByText("Stock match not available yet")).toBeInTheDocument();
+  });
 });
