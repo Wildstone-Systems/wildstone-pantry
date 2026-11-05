@@ -111,6 +111,29 @@ class PantryOSClient:
     def recipe_nutrition(self, recipe_id: str) -> Any:
         return self._get(f"/api/recipes/{recipe_id}/nutrition")
 
+    # --- recipe nutrition override (issue #51) ---
+    def set_recipe_nutrition_override(
+        self,
+        recipe_id: str,
+        *,
+        calories: float,
+        protein_g: float,
+        fat_g: float,
+        carbs_g: float,
+        source: str,
+    ) -> Any:
+        resp = self._http.put(
+            f"/api/recipes/{recipe_id}/nutrition-override",
+            json={"calories": calories, "protein_g": protein_g, "fat_g": fat_g, "carbs_g": carbs_g, "source": source},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def clear_recipe_nutrition_override(self, recipe_id: str) -> Any:
+        resp = self._http.delete(f"/api/recipes/{recipe_id}/nutrition-override")
+        resp.raise_for_status()
+        return resp.json()
+
     def search_food(self, query: str, *, limit: int = 10) -> Any:
         return self._get("/api/items/search-nutrition", {"q": query, "limit": limit})
 

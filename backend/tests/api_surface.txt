@@ -18,6 +18,7 @@ DELETE /api/meal-plan/entries/{entry_id}
 DELETE /api/meal-plan/excluded-items/{excluded_id}
 DELETE /api/recipes/{recipe_id}
 DELETE /api/recipes/{recipe_id}/image
+DELETE /api/recipes/{recipe_id}/nutrition-override
 DELETE /api/shopping-list/{entry_id}
 DELETE /api/substitution-reviews/{review_id}
 DELETE /api/substitutions/{substitution_id}
@@ -286,4 +287,5 @@ PUT /api/items/{item_id}/structured-evidence
 PUT /api/locations/{location_id}
 PUT /api/recipes/{recipe_id}
 PUT /api/recipes/{recipe_id}/ingredients
+PUT /api/recipes/{recipe_id}/nutrition-override
 PUT /api/substitutions/{substitution_id}

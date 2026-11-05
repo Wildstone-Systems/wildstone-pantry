@@ -585,6 +585,39 @@ class RecipeNutritionRead(BaseModel):
     per_serving: RecipeNutrientTotals
     unresolved: list[RecipeUnresolvedIngredient]
     complete: bool
+    # Added for issue #51 (additive, so older consumers are unaffected):
+    # "ingredient_derived" = rolled up from catalog macros (may be partial);
+    # "source_override" = the recipe's published per-serving values.
+    basis: Literal["ingredient_derived", "source_override"] = "ingredient_derived"
+    provenance: str | None = None
+
+
+# Bounds mirror the Numeric(9, 2) / String(200) override columns exactly, so
+# out-of-range input is a 422 rather than a database error.
+NUTRITION_OVERRIDE_MAX = Decimal("9999999.99")
+NUTRITION_OVERRIDE_SOURCE_MAX = 200
+
+
+class RecipeNutritionOverrideInput(BaseModel):
+    """Source-published nutrition for ONE serving of the finished recipe.
+
+    All four values are required. Calories must be > 0, macros >= 0, at most two
+    decimal places, at most 9,999,999.99. NaN/Infinity are rejected. ``source``
+    (provenance, e.g. "Publisher label" or a URL) is required, trimmed, 1-200 chars.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    calories: Decimal = Field(gt=0, le=NUTRITION_OVERRIDE_MAX, max_digits=9, decimal_places=2, allow_inf_nan=False)
+    protein_g: Decimal = Field(ge=0, le=NUTRITION_OVERRIDE_MAX, max_digits=9, decimal_places=2, allow_inf_nan=False)
+    fat_g: Decimal = Field(ge=0, le=NUTRITION_OVERRIDE_MAX, max_digits=9, decimal_places=2, allow_inf_nan=False)
+    carbs_g: Decimal = Field(ge=0, le=NUTRITION_OVERRIDE_MAX, max_digits=9, decimal_places=2, allow_inf_nan=False)
+    source: str = Field(min_length=1, max_length=NUTRITION_OVERRIDE_SOURCE_MAX)
+
+    @field_validator("source", mode="before")
+    @classmethod
+    def _strip_source(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class RecipeSuggestionSubstitution(BaseModel):

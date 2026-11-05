@@ -242,10 +242,39 @@ def list_recipes() -> Any:
 
 @mcp.tool()
 def recipe_nutrition(recipe_id: str) -> Any:
-    """A recipe's calories/protein/fat/carbs — total and per serving — summed from
-    its ingredients' per-100g nutrition. `unresolved` lists ingredients missing
-    nutrition data, so a partial total is never mistaken for a complete one."""
+    """A recipe's calories/protein/fat/carbs — total and per serving. `basis` says
+    where the numbers came from: "source_override" (the recipe's published
+    per-serving values, see `provenance`; totals = per-serving × servings) or
+    "ingredient_derived" (summed from ingredients' per-100g nutrition, where
+    `unresolved` lists ingredients missing data so a partial total is never
+    mistaken for a complete one)."""
     return _client().recipe_nutrition(recipe_id)
+
+
+@mcp.tool()
+def set_recipe_nutrition_override(
+    recipe_id: str,
+    calories: float,
+    protein_g: float,
+    fat_g: float,
+    carbs_g: float,
+    source: str,
+) -> Any:
+    """Store the nutrition a recipe's SOURCE publishes for ONE serving, replacing
+    any earlier override. All four values are required: calories > 0; protein_g,
+    fat_g, carbs_g >= 0; max 2 decimals and 9,999,999.99. `source` is the
+    provenance (e.g. publisher name or URL), 1-200 chars. Needs a write-scoped
+    agent key. Returns the recipe's nutrition (basis "source_override")."""
+    return _client().set_recipe_nutrition_override(
+        recipe_id, calories=calories, protein_g=protein_g, fat_g=fat_g, carbs_g=carbs_g, source=source
+    )
+
+
+@mcp.tool()
+def clear_recipe_nutrition_override(recipe_id: str) -> Any:
+    """Remove a recipe's source-provided nutrition so it is computed from its
+    ingredients again. Needs a write-scoped agent key."""
+    return _client().clear_recipe_nutrition_override(recipe_id)
 
 
 @mcp.tool()
