@@ -72,6 +72,8 @@ describe("OidcCard", () => {
     await waitFor(() => expect(screen.getByDisplayValue("pantryos")).toBeInTheDocument());
     // The card starts collapsed; expand it to reach the Save button.
     await user.click(screen.getByRole("button", { name: "Expand" }));
+    // The panel opens asynchronously; wait until its controls are interactive.
+    await screen.findByRole("button", { name: /save/i });
 
     const clientIdInput = screen.getByDisplayValue("pantryos");
     await user.clear(clientIdInput);

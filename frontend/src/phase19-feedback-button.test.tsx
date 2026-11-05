@@ -39,5 +39,11 @@ describe("Phase 19 feedback button (Mantine modal)", () => {
     expect(payload.route).toBe("/inventory?location=loc-1");
     expect(payload.message).toContain("Summary:\nSidebar overlaps content");
     expect(payload.message).toContain("Meta:");
+
+    // The modal closes after submit and Mantine returns focus to the trigger on
+    // a 10 ms timer. Wait for the close and let that timer run, so the timer can't fire after jsdom is torn
+    // down ("document is not defined" on slow CI runners).
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await new Promise((resolve) => setTimeout(resolve, 20));
   });
 });

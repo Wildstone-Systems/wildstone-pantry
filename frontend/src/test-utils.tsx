@@ -14,7 +14,7 @@ export function renderWithProviders(ui: ReactElement, { initialEntries }: { init
   });
 
   return render(
-    <ThemeModeProvider initialMode="light">
+    <ThemeModeProvider initialMode="light" env="test">
       <QueryClientProvider client={queryClient}>
         <AppStateProvider>
           <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>

@@ -433,7 +433,7 @@ export function InventoryPage() {
         >
           {showAdvanced ? "Fewer options" : "More options — container, expiry, move"}
         </Button>
-        <Collapse in={showAdvanced}>
+        <Collapse expanded={showAdvanced}>
           <Stack gap="md">
             <Group grow>
               <Select

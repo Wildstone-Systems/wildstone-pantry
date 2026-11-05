@@ -72,7 +72,7 @@ export function CollapsibleCard({
           </ActionIcon>
         </Group>
       </Group>
-      <Collapse in={opened}>
+      <Collapse expanded={opened}>
         <Stack gap="sm" mt="md">
           {children}
         </Stack>

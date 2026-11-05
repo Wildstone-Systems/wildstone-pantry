@@ -100,7 +100,7 @@ describe("Reviewed purchase CSV", () => {
     expect(screen.getByText("Classifier suggestion — human verification required")).toBeVisible();
     expect(screen.getByText(/A confidence score is not validated accuracy/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Commit reviewed CSV" })).toBeDisabled();
-    await user.click(screen.getByRole("textbox", { name: "CSV catalog item 1" }));
+    await user.click(screen.getByRole("combobox", { name: "CSV catalog item 1" }));
     await user.click(screen.getByRole("option", { name: "Bread" }));
     await user.clear(screen.getByLabelText("CSV item name 2"));
     await user.click(screen.getByRole("button", { name: "Exclude CSV row 2" }));
@@ -164,7 +164,7 @@ describe("Reviewed purchase CSV", () => {
     });
     await user.click(screen.getByRole("button", { name: "Ask classifier (admin)" }));
     await screen.findByText(/60% model score — Below threshold/);
-    expect(screen.getByRole("textbox", { name: "CSV catalog item 1" })).toHaveValue("Milk");
+    expect(screen.getByRole("combobox", { name: "CSV catalog item 1" })).toHaveValue("Milk");
     expect(screen.getByLabelText("I verified CSV row 1")).not.toBeChecked();
     expect(screen.getByRole("button", { name: "Commit reviewed CSV" })).toBeDisabled();
   });
@@ -216,7 +216,7 @@ describe("Reviewed purchase CSV", () => {
       { id: "bread", name: "Bread" },
     ];
     const { user } = await preview();
-    await user.click(screen.getByRole("textbox", { name: "CSV catalog item 1" }));
+    await user.click(screen.getByRole("combobox", { name: "CSV catalog item 1" }));
     expect(screen.getByRole("option", { name: "Milk (Dairy Farm)" })).toBeVisible();
     await user.click(screen.getByRole("option", { name: "Milk (Oat Farm)" }));
     await user.click(screen.getByRole("button", { name: "Exclude CSV row 2" }));
@@ -252,7 +252,7 @@ describe("Reviewed purchase CSV", () => {
     await screen.findByText("Suggested match: Bread");
     expect(screen.getByText("Suggested role: Stock purchase")).toBeVisible();
     expect(screen.getByText("Alternative candidate: Milk")).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "CSV catalog item 1" })).toHaveValue("Milk");
+    expect(screen.getByRole("combobox", { name: "CSV catalog item 1" })).toHaveValue("Milk");
     expect(screen.getByLabelText("I verified CSV row 1")).not.toBeChecked();
     expect(screen.getByRole("button", { name: "Commit reviewed CSV" })).toBeDisabled();
   });
@@ -264,7 +264,7 @@ describe("Reviewed purchase CSV", () => {
       matched_item_brand: "Saved brand",
     };
     await preview();
-    expect(screen.getByRole("textbox", { name: "CSV catalog item 1" })).toHaveValue(
+    expect(screen.getByRole("combobox", { name: "CSV catalog item 1" })).toHaveValue(
       "Saved product (Saved brand) — saved selection"
     );
   });
