@@ -1,7 +1,7 @@
 import "@mantine/core/styles.css";
 import "./global.css";
 
-import { MantineProvider } from "@mantine/core";
+import { Collapse, MantineProvider, mergeThemeOverrides } from "@mantine/core";
 import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
 
 import { theme } from "./theme";
@@ -17,6 +17,15 @@ type ThemeModeContextValue = {
 const ThemeModeContext = createContext<ThemeModeContextValue | null>(null);
 
 const STORAGE_KEY = "pantry_theme_mode";
+
+// Mantine's `env="test"` does not cover Collapse: it keeps its content hidden
+// until an animation frame runs, so on slow CI runners a test can look for a
+// button in an open card before it is visible. With no transition, an expanded
+// Collapse renders its content at once; a collapsed one keeps it mounted
+// but hidden (display: none), as Mantine 7 did.
+const testTheme = mergeThemeOverrides(theme, {
+  components: { Collapse: Collapse.extend({ defaultProps: { transitionDuration: 0, keepMountedMode: "display-none" } }) },
+});
 
 function getInitialMode(initialMode?: ThemeMode): ThemeMode {
   if (initialMode) return initialMode;
@@ -58,7 +67,7 @@ export function ThemeModeProvider({
 
   return (
     <ThemeModeContext.Provider value={contextValue}>
-      <MantineProvider theme={theme} forceColorScheme={mode} env={env}>
+      <MantineProvider theme={env === "test" ? testTheme : theme} forceColorScheme={mode} env={env}>
         {children}
       </MantineProvider>
     </ThemeModeContext.Provider>
