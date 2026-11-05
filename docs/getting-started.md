@@ -37,6 +37,10 @@ docker compose -f docker-compose.product.yml up --build -d
 
 Open <http://localhost:8420>.
 
+Or let the script do it: `./scripts/install.sh` builds the production image
+from your checkout, generates secrets into `~/.pantryos`, starts the stack,
+waits for health and prints the URL. Re-running keeps existing secrets and data.
+
 - One container serves both the UI and the API on a single port.
 - Postgres is not exposed outside the stack.
 - The published image is `ghcr.io/wildstone-systems/pantryos` (built on `v*` tags).

@@ -1,19 +1,8 @@
 #!/usr/bin/env sh
+# Quick Install from a source checkout: installs the PRODUCTION stack
+# (built frontend, single port, generated secrets, Postgres unpublished).
+# Delegates to install-product.sh so secret generation and health waiting live
+# in one place. For the hot-reload dev stack use `docker compose up` instead.
 set -eu
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "docker is required" >&2
-  exit 1
-fi
-
-if ! docker compose version >/dev/null 2>&1; then
-  echo "docker compose plugin is required" >&2
-  exit 1
-fi
-
-echo "Starting PantryOS stack..."
-docker compose up --build -d
-
-echo "PantryOS started."
-echo "API: http://localhost:8000"
-echo "UI : http://localhost:5173"
+BUILD_FROM_SOURCE=1 exec bash "$(dirname "$0")/install-product.sh" "$@"

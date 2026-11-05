@@ -16,7 +16,9 @@ docker compose up --build
 | Postgres | `localhost:5432` (loopback only, dev credentials) |
 
 Migrations run automatically when the backend starts.
-`./scripts/install.sh` is a shortcut for the same command in the background.
+This is for development only (Vite dev server, well-known credentials). To
+install PantryOS, use `./scripts/install.sh` instead — see
+[Getting started](getting-started.md#docker-compose).
 
 ## Backend without Docker
 
