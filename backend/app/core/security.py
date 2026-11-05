@@ -179,3 +179,35 @@ def resolve_actor(
     from app.services.profiles import resolve_actor_profile
 
     return resolve_actor_profile(db, x_household_profile)
+
+
+async def require_write_credential(
+    authorization: str | None = Header(default=None),
+    x_agent_key: str | None = Header(default=None, alias="X-Agent-Key"),
+    db: Session = Depends(get_db),
+):
+    """Strict guard for curated-data writes (issue #51): never the kiosk fallback.
+
+    Accepts exactly two identities:
+      * a valid agent key carrying the ``write`` scope (read-only keys → 403)
+        and owned by a provisioned admin (a member's own key → 403);
+      * a real, provisioned admin bearer login (via ``require_authenticated_admin``).
+
+    Anything else is refused — no credential (401), an invalid/revoked agent key
+    (401), a malformed or invalid bearer token (401, even in personal mode, where
+    ``require_user`` would otherwise fall back to the kiosk identity), or a
+    non-admin user (403).
+    """
+    if x_agent_key:
+        resolved = authenticate_agent_key(db, x_agent_key.strip())
+        if not resolved:
+            raise HTTPException(status_code=401, detail="Invalid or revoked agent key")
+        agent_user, key = resolved
+        if "write" not in scope_set(key.scopes):
+            raise HTTPException(status_code=403, detail="Agent key lacks the 'write' scope")
+        # Any user can mint their own agent key, so a key carries no more
+        # authority than its owner: it must belong to a real, provisioned admin.
+        if agent_user.role != "admin" or not agent_user.is_provisioned:
+            raise HTTPException(status_code=403, detail="Agent key owner is not an admin")
+        return agent_user
+    return await require_authenticated_admin(authorization, db)

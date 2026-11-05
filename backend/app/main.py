@@ -2,11 +2,13 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.middleware.cors import CORSMiddleware
 
 import modules  # noqa: F401  (imports module manifests so they self-register)
 from app.core import settings
+from app.core.validation import request_validation_error_handler
 from app.routes import (
     activation_router,
     agent_guide_router,
@@ -133,6 +135,7 @@ def _seed_ingredient_reference() -> None:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="PantryOS API", version=settings.app_version, lifespan=lifespan)
+    app.add_exception_handler(RequestValidationError, request_validation_error_handler)
 
     # Serve the schema and docs under /api as well as at the root.
     #

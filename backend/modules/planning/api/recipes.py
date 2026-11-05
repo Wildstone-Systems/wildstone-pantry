@@ -6,7 +6,13 @@ from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.security import allow_kiosk, deny_agent_keys, require_authenticated_admin, resolve_actor
+from app.core.security import (
+    allow_kiosk,
+    deny_agent_keys,
+    require_authenticated_admin,
+    require_write_credential,
+    resolve_actor,
+)
 from app.db import get_db
 from app.models import Recipe
 from app.services import provider_keys
@@ -33,6 +39,7 @@ from modules.planning.schemas.recipe import (
     RecipeIngredientInput,
     RecipeListRead,
     RecipeMutationRead,
+    RecipeNutritionOverrideInput,
     RecipeNutritionRead,
     RecipeRead,
     RecipeSearchResponse,
@@ -79,7 +86,9 @@ from modules.planning.services.recipes import (
     pending_ingredient_matches,
     preview_ingredient_specs,
     recipe_availability,
+    clear_nutrition_override,
     recipe_nutrition,
+    set_nutrition_override,
     resolve_ingredient_specs,
     set_recipe_ingredients,
     suggest_recipes,
@@ -435,6 +444,36 @@ def get_recipe_route(recipe_id: UUID, db: Session = Depends(get_db)) -> RecipeWi
 def recipe_nutrition_route(recipe_id: UUID, db: Session = Depends(get_db)) -> RecipeNutritionRead:
     try:
         result = recipe_nutrition(db, recipe_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return RecipeNutritionRead.model_validate(result)
+
+
+@router.put("/{recipe_id}/nutrition-override", response_model=RecipeNutritionRead)
+def set_nutrition_override_route(
+    recipe_id: UUID,
+    payload: RecipeNutritionOverrideInput,
+    db: Session = Depends(get_db),
+    _actor=Depends(require_write_credential),
+) -> RecipeNutritionRead:
+    """Create/replace the source-published per-serving nutrition (issue #51).
+    Requires a write-scoped agent key or a provisioned admin login."""
+    try:
+        result = set_nutrition_override(db, recipe_id, **payload.model_dump())
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return RecipeNutritionRead.model_validate(result)
+
+
+@router.delete("/{recipe_id}/nutrition-override", response_model=RecipeNutritionRead)
+def clear_nutrition_override_route(
+    recipe_id: UUID,
+    db: Session = Depends(get_db),
+    _actor=Depends(require_write_credential),
+) -> RecipeNutritionRead:
+    """Clear the override; returns the ingredient-derived nutrition again."""
+    try:
+        result = clear_nutrition_override(db, recipe_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return RecipeNutritionRead.model_validate(result)
