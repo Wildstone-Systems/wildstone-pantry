@@ -14,5 +14,5 @@ pytesseract==0.3.13
 pypdf==6.21.2
 pdf2image==1.17.0
 beautifulsoup4==4.15.0
-cryptography==50.0.0
+cryptography==50.0.2
 PyJWT==2.15.1
