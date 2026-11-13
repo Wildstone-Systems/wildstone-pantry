@@ -1,18 +1,14 @@
 import {
   Button,
   Card,
-  Checkbox,
   Group,
   ScrollArea,
   Select,
   Stack,
   Table,
   Text,
-  TextInput,
-  Textarea,
   Title,
 } from "@mantine/core";
-import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -26,8 +22,7 @@ import { usePurchases, usePurchaseDetail, useIngestReceiptImage } from "../hooks
 import { ReviewedPurchaseCsvCard } from "../components/ReviewedPurchaseCsvCard";
 
 export function PurchasesPage() {
-  const queryClient = useQueryClient();
-  const { selectedLocationId, setStatus } = useAppState();
+  const { selectedLocationId } = useAppState();
 
   const purchasesQuery = usePurchases(25);
   const purchases = purchasesQuery.data ?? [];

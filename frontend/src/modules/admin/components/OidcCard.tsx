@@ -88,7 +88,7 @@ export function OidcCard() {
     const seed: Record<string, string> = {};
     for (const f of FIELDS) if (!f.secret) seed[f.name] = view.values?.[f.name] ?? "";
     setValues(seed);
-  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [view]);
 
   const configured = Boolean(values.issuer?.trim() && values.client_id?.trim() && view?.secret_set?.client_secret);
 
