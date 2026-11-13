@@ -344,7 +344,7 @@ export function CookAlongPage() {
       await linkPlannedMeal(planEntryId, cookEventId);
       return;
     }
-    let candidates: MealPlanEntry[] = [];
+    let candidates: MealPlanEntry[];
     try {
       candidates = await fetchCookCandidates(recipeId, todayLocal());
     } catch {
