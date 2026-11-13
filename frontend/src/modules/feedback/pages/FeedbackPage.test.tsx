@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders } from "./test-utils";
+import { renderWithProviders } from "../../../test-utils";
 
 const openRow = {
   id: "fb-open",
@@ -30,16 +30,16 @@ const apiGetSpy = vi.fn(async (url: string) => {
   return { data: { feedback: [openRow, resolvedRow] } };
 });
 
-vi.mock("./api/client", () => ({
+vi.mock("../../../api/client", () => ({
   api: {
     get: apiGetSpy,
     patch: vi.fn(async () => ({ data: {} })),
   },
 }));
 
-describe("Phase 20 feedback inbox filter", () => {
+describe("FeedbackPage status filter", () => {
   it("filters feedback by status via the API", async () => {
-    const { FeedbackPage } = await import("./modules/feedback/pages/FeedbackPage");
+    const { FeedbackPage } = await import("./FeedbackPage");
 
     renderWithProviders(<FeedbackPage />, { initialEntries: ["/feedback"] });
 
