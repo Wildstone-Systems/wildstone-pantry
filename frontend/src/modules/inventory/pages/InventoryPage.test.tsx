@@ -85,7 +85,7 @@ describe("InventoryPage - Log table", () => {
     await renderLogTab();
 
     // Default: newest first (Milk, then Apple Juice) — unchanged from the fetch order.
-    let rows = dataRows();
+    const rows = dataRows();
     expect(within(rows[0]).getByText("Milk")).toBeInTheDocument();
     expect(within(rows[1]).getByText("Apple Juice")).toBeInTheDocument();
 

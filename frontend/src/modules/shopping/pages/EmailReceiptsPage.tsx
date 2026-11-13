@@ -38,21 +38,6 @@ type DiscoverResponse = {
   error: string | null;
 };
 
-type EmailSummary = {
-  message_id: string;
-  retailer: string | null;
-  sender: string;
-  subject: string;
-  date: string | null;
-  snippet: string;
-};
-
-type ListResponse = {
-  emails: EmailSummary[];
-  total_available: number;
-  error: string | null;
-};
-
 type ParsedLineItem = {
   description: string;
   product_name: string | null;
@@ -118,7 +103,6 @@ export function EmailReceiptsPage() {
   const [selectedRetailer, setSelectedRetailer] = useState("");
   const [maxAgeDays, setMaxAgeDays] = useState(90);
   const [selectedPreview, setSelectedPreview] = useState<ReceiptPreview | null>(null);
-  const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
 
   // ---- Discover ----
   const discoverQuery = useQuery({
@@ -126,18 +110,6 @@ export function EmailReceiptsPage() {
     queryFn: async () => {
       const res = await api.get<DiscoverResponse>("/api/receipts/email/discover", {
         params: { max_age_days: maxAgeDays },
-      });
-      return res.data;
-    },
-  });
-
-  // ---- List ----
-  const listMutation = useMutation({
-    mutationFn: async ({ retailer, maxAgeDays: days }: { retailer: string; maxAgeDays: number }) => {
-      const res = await api.post<ListResponse>("/api/receipts/email/list", {
-        retailer: retailer || null,
-        max_age_days: days,
-        max_results: 20,
       });
       return res.data;
     },
@@ -155,14 +127,6 @@ export function EmailReceiptsPage() {
     },
   });
 
-  // ---- Single Preview ----
-  const singlePreviewMutation = useMutation({
-    mutationFn: async (messageId: string) => {
-      const res = await api.get<ReceiptPreview>(`/api/receipts/email/preview/${messageId}`);
-      return res.data;
-    },
-  });
-
   // ---- Import ----
   const importMutation = useMutation({
     mutationFn: async ({ messageId, locationId }: { messageId: string; locationId: string }) => {
@@ -176,20 +140,11 @@ export function EmailReceiptsPage() {
       setStatus(`Imported ${data.item_count} items into inventory`);
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["items"] });
-      if (data.receipt_id) {
-        setImportedIds((prev) => new Set(prev).add(data.receipt_id!));
-      }
     },
     onError: (error) => {
       setStatus(getApiErrorMessage(error, "Import failed"));
     },
   });
-
-  const busy =
-    listMutation.isPending ||
-    previewMutation.isPending ||
-    singlePreviewMutation.isPending ||
-    importMutation.isPending;
 
   const previews = previewMutation.data?.previews ?? [];
 
