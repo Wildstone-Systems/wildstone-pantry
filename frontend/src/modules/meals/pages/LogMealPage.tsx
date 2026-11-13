@@ -144,37 +144,6 @@ export function LogMealPage() {
     setResult(null);
   }, []);
 
-  const pickHit = async (hit: SearchHit) => {
-    setError(null);
-    if (hit.source === "catalog") {
-      addLine(hit.id, hit.name);
-      return;
-    }
-    if (hit.source === "barcode") {
-      setBusyHit(`barcode:${hit.code}`);
-      try {
-        await lookupBarcode(hit.code);
-      } finally {
-        setBusyHit(null);
-      }
-      return;
-    }
-    // A database row isn't a catalog item yet — materialise it (idempotent),
-    // then add. Repeat picks of the same food reuse the same item.
-    setBusyHit(`usda:${hit.fdcId}`);
-    try {
-      const res = await api.post<{ id: string; name: string }>("/api/items/from-food-search", {
-        fdc_id: hit.fdcId,
-        q: broadenedTo ?? trimmed,
-      });
-      addLine(res.data.id, res.data.name);
-    } catch (err) {
-      setError(getApiErrorMessage(err, "Could not use that food"));
-    } finally {
-      setBusyHit(null);
-    }
-  };
-
   // ---- Barcode / camera: a scan can't be typed, so it keeps its own control —
   // but it drops straight into the same cart.
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -238,6 +207,37 @@ export function LogMealPage() {
   }, []);
 
   useEffect(() => () => controlsRef.current?.stop(), []);
+
+  const pickHit = async (hit: SearchHit) => {
+    setError(null);
+    if (hit.source === "catalog") {
+      addLine(hit.id, hit.name);
+      return;
+    }
+    if (hit.source === "barcode") {
+      setBusyHit(`barcode:${hit.code}`);
+      try {
+        await lookupBarcode(hit.code);
+      } finally {
+        setBusyHit(null);
+      }
+      return;
+    }
+    // A database row isn't a catalog item yet — materialise it (idempotent),
+    // then add. Repeat picks of the same food reuse the same item.
+    setBusyHit(`usda:${hit.fdcId}`);
+    try {
+      const res = await api.post<{ id: string; name: string }>("/api/items/from-food-search", {
+        fdc_id: hit.fdcId,
+        q: broadenedTo ?? trimmed,
+      });
+      addLine(res.data.id, res.data.name);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Could not use that food"));
+    } finally {
+      setBusyHit(null);
+    }
+  };
 
   const activeProfile = (profiles ?? []).find((p) => p.id === activeProfileId);
 
