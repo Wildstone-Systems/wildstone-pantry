@@ -3,6 +3,7 @@ import {
   Card,
   createTheme,
   Input,
+  Textarea,
   Modal,
   type MantineColorsTuple,
   Paper,
@@ -148,6 +149,11 @@ export const theme = createTheme({
           },
         };
       },
+    }),
+    // Multi-line inputs can't be pills — a 999 radius on a tall box looks
+    // like a capsule. Use normal rounded corners instead.
+    Textarea: Textarea.extend({
+      defaultProps: { radius: "md" },
     }),
     SegmentedControl: SegmentedControl.extend({
       defaultProps: { radius: 999, color: "terracotta" },

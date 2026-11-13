@@ -1,4 +1,14 @@
 import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+// Testing Library only auto-unmounts when Vitest `globals` is on, and it is off
+// here. Without this, every rendered tree stays mounted after its test, and
+// React can still run scheduled work when the jsdom `window` is torn down —
+// an intermittent "window is not defined" that fails CI with all tests green.
+afterEach(() => {
+  cleanup();
+});
 
 // Mantine depends on matchMedia for color scheme and media query hooks.
 if (!window.matchMedia) {
