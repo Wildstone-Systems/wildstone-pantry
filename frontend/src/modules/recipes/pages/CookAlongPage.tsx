@@ -162,17 +162,6 @@ export function CookAlongPage() {
     if (session) setSubstitutionApprovalIds(session.plan?.substitution_approval_ids ?? []);
   }, [session?.id, serverApprovalIds]);
 
-  // Pick up a cook of THIS recipe that is already going: the tablet resumes
-  // where the cook (or the agent) left off. Once per page load, so going back
-  // to the setup screen on purpose does not bounce you into the steps again.
-  const resumed = useRef(false);
-  useEffect(() => {
-    if (resumed.current || !activeHere) return;
-    resumed.current = true;
-    adopt(activeHere);
-    setPhase("cook");
-  }, [activeHere]);
-
   /** Take a session's servings and plan as this page's own. */
   const adopt = (s: CookSession) => {
     setSessionId(s.id);
@@ -196,6 +185,17 @@ export function CookAlongPage() {
     setSubstitutions(plan.substitutions ?? []);
     setSubstitutionApprovalIds(plan.substitution_approval_ids ?? []);
   };
+
+  // Pick up a cook of THIS recipe that is already going: the tablet resumes
+  // where the cook (or the agent) left off. Once per page load, so going back
+  // to the setup screen on purpose does not bounce you into the steps again.
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (resumed.current || !activeHere) return;
+    resumed.current = true;
+    adopt(activeHere);
+    setPhase("cook");
+  }, [activeHere]);
 
   // The session ended somewhere else — an agent finished it, or someone
   // stopped it — while this page was on it.

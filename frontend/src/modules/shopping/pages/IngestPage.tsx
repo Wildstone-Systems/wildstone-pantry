@@ -13,7 +13,7 @@ import {
   Select,
 } from "@mantine/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { api } from "@/api/client";
 import { getApiErrorMessage } from "@/api/errors";
 import type {
@@ -67,7 +67,9 @@ export function IngestPage() {
   const [rawText, setRawText] = useState("");
   const [review, setReview] = useState<Review | null>(null);
   const locationRef = useRef(selectedLocationId);
-  locationRef.current = selectedLocationId;
+  useLayoutEffect(() => {
+    locationRef.current = selectedLocationId;
+  }, [selectedLocationId]);
   const previewVersion = useRef(0);
   const barcodeLookup = useMutation({
     mutationFn: async () => {
