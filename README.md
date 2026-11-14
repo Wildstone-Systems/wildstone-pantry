@@ -76,6 +76,7 @@ Then open **<http://localhost:8420>** and follow the setup wizard.
 | Guide | |
 |---|---|
 | [Getting started](docs/getting-started.md) | All install options and first run |
+| [Olares](deploy/olares/pantryos/README.md) | Install PantryOS as a shared Olares app |
 | [Single sign-on (OIDC)](docs/sso-oidc-setup.md) | Authelia, authentik, Keycloak, Pocket ID |
 | [AI assistants (MCP)](docs/mcp-and-agents.md) | Connect an AI assistant |
 | [Long-lived deployments](docs/deployment.md) | Staging stack and secrets |

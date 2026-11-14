@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pantryos
+  labels:
+    app.kubernetes.io/name: pantryos
+spec:
+  replicas: {{ .Values.workloads.pantryos.replicaCount }}
+  # The image runs Alembic on startup. Avoid overlapping releases.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pantryos
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pantryos
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: pantryos
+          image: {{ printf "%s@%s" .Values.image.repository .Values.image.digest | quote }}
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: pantryos-runtime
+          env:
+            - name: ENVIRONMENT
+              value: production
+            - name: AUTH_ENABLED
+              value: "false"
+            - name: CORS_ALLOW_ORIGINS
+              value: ""
+            - name: UPDATE_MANIFEST_URL
+              value: ""
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
