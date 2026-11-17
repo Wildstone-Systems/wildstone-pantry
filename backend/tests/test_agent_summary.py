@@ -52,7 +52,10 @@ def test_summary_counts(client: httpx.Client) -> None:
     assert body["expiring_soon"] == 0
 
 
-def test_summary_requires_auth(client: httpx.Client) -> None:
+def test_summary_requires_auth(client: httpx.Client, monkeypatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "auth_enabled", True)
     assert client.get("/api/agent/summary").status_code == 401
 
 

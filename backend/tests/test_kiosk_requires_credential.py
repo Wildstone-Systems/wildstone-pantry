@@ -31,6 +31,9 @@ def _admin_headers(client: httpx.Client) -> dict[str, str]:
 
 
 def _device_headers(client: httpx.Client) -> dict[str, str]:
+    from app.core.ratelimit import login_limiter
+
+    login_limiter.record_success("pairing:testclient")  # clear other tests' failures
     code = client.post("/api/devices/pairing-codes", headers=_admin_headers(client)).json()["code"]
     paired = client.post("/api/devices/pair", json={"code": code, "device_name": "Kitchen tablet"})
     assert paired.status_code == 200, paired.text

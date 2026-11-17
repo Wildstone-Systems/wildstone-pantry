@@ -57,8 +57,8 @@ def test_accounts_mode_turns_auth_on_at_runtime(client: httpx.Client, monkeypatc
     assert client.get("/api/auth/users").status_code == 401
     assert client.get("/api/setup/status").json()["accounts_mode"] is True
 
-    # Kiosk-open endpoints stay open either way (ADR 0004).
-    assert client.get("/api/items").status_code == 200
+    # With logins on, kiosk endpoints need a credential too (paired device).
+    assert client.get("/api/items").status_code == 401
 
 
 def test_existing_install_with_items_never_sees_the_wizard(client: httpx.Client) -> None:
