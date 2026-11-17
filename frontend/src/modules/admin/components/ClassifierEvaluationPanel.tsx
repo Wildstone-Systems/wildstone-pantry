@@ -95,6 +95,8 @@ export function ClassifierEvaluationPanel() {
   const [history, setHistory] = useState<Run[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Mirrors `active.current` so render can read it (refs don't trigger re-renders).
+  const [canCancel, setCanCancel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const active = useRef<{ controller: AbortController; id: string | null; cancelled: boolean } | null>(null);
   const mounted = useRef(true);
@@ -160,6 +162,7 @@ export function ClassifierEvaluationPanel() {
     if (policyDirty || diagnosticUsed) return;
     const current = { controller: new AbortController(), id: null as string | null, cancelled: false };
     active.current = current;
+    setCanCancel(true);
     setBusy(true); setError(null); setConfirmed(false);
     try {
       let next = (await api.post<Run>(`${ROOT}/runs`, {
@@ -180,7 +183,7 @@ export function ClassifierEvaluationPanel() {
       if (!current.cancelled && mounted.current) setError(getApiErrorMessage(err, "Evaluation stopped. Check its saved record before starting another run."));
     } finally {
       if (!current.cancelled) {
-        if (active.current === current) active.current = null;
+        if (active.current === current) { active.current = null; if (mounted.current) setCanCancel(false); }
         if (mounted.current) setBusy(false);
       }
     }
@@ -197,7 +200,7 @@ export function ClassifierEvaluationPanel() {
       }
     } catch (err) { if (mounted.current) setError(getApiErrorMessage(err, "Cancellation could not be confirmed. Check the saved run.")); }
     finally {
-      if (active.current === current) active.current = null;
+      if (active.current === current) { active.current = null; if (mounted.current) setCanCancel(false); }
       if (mounted.current) setBusy(false);
     }
   }
@@ -340,7 +343,7 @@ export function ClassifierEvaluationPanel() {
         {split === "holdout" && <Text size="sm">{isDiagnostic ? "Held-out diagnostic requires the locked provisional reference snapshot and its fixed policy." : "Held-out evidence requires frozen labels and a policy chosen before the run."} The server checks task support, related-case groups and safety limits.</Text>}
         {diagnosticUsed && <Text c="orange">This diagnostic split allowance has been used. It cannot be repeated or restored by deleting its run.</Text>}
         <Group><Button disabled={busy || diagnosticUsed || policyDirty || !confirmed || !validBudget || ((engine !== "rules" || split === "holdout") && !providerReady)} onClick={start}>Start evaluation</Button>
-          <Button variant="default" disabled={!busy || !active.current} onClick={cancel}>Cancel evaluation</Button></Group>
+          <Button variant="default" disabled={!busy || !canCancel} onClick={cancel}>Cancel evaluation</Button></Group>
       </>}
       <Button variant="subtle" disabled={busy} onClick={refreshRuns}>Load recent saved runs</Button>
       <Text size="sm">Up to 20 runs can be saved. If that limit is reached, load recent saved runs and delete an old record to make room.</Text>

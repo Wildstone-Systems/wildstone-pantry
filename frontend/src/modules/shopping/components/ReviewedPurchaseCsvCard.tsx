@@ -14,7 +14,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { getApiErrorMessage } from "@/api/errors";
@@ -78,7 +78,9 @@ export function ReviewedPurchaseCsvCard() {
   const [result, setResult] = useState<PurchaseImportApiResponse | null>(null);
   const version = useRef(0);
   const location = useRef(selectedLocationId);
-  location.current = selectedLocationId;
+  useLayoutEffect(() => {
+    location.current = selectedLocationId;
+  }, [selectedLocationId]);
   function invalidate() {
     version.current++;
     setDraft(null);

@@ -14,7 +14,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useLocations } from "@/api/hooks";
@@ -64,7 +64,9 @@ export function HandoffSessionPage() {
 
   const items = useMemo(() => session.data?.items ?? [], [session.data]);
   const itemsRef = useRef(items);
-  itemsRef.current = items;
+  useLayoutEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   const boughtStates = new Set(["added", "substituted", "purchased"]);
 
   useEffect(() => {
