@@ -36,6 +36,11 @@ spec:
               value: production
             - name: AUTH_ENABLED
               value: "false"
+            # Empty makes the backend give its open-mode auto-admin a random
+            # password instead of the public built-in default (matches
+            # docker-compose.product.yml).
+            - name: AUTH_PERSONAL_PASSWORD
+              value: ""
             - name: CORS_ALLOW_ORIGINS
               value: ""
             - name: UPDATE_MANIFEST_URL

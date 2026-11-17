@@ -49,5 +49,10 @@ fresh database and leaves PantryOS's optional application-level scheduled
 backups disabled. Verify Olares backup and restore behavior before moving
 existing pantry data into this installation.
 
+PantryOS starts in open household mode (`AUTH_ENABLED=false`) and lets the
+first-run wizard switch on accounts. The chart sets `AUTH_PERSONAL_PASSWORD`
+to empty so the built-in open-mode admin gets a random password, never the
+public default.
+
 To rebuild the package from this directory, run `helm package ./pantryos`
 from its parent directory.
