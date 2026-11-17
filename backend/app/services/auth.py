@@ -109,6 +109,11 @@ def authenticate(db: Session, *, email: str, password: str) -> tuple[User, AuthT
     user = db.execute(select(User).where(User.email == email.lower().strip())).scalar_one_or_none()
     if not user or not user.is_active:
         raise LookupError("Invalid credentials")
+    # The personal/kiosk auto-user is unprovisioned and may carry the public
+    # AUTH_PERSONAL_PASSWORD default; it is never a password-login identity.
+    # It becomes one only once first-run setup claims it (bootstrap_admin).
+    if not user.is_provisioned:
+        raise LookupError("Invalid credentials")
     if not _verify_password(password, user.password_hash):
         raise LookupError("Invalid credentials")
 
