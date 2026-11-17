@@ -25,8 +25,8 @@ lives in `ARCHITECTURE.md`.
 - Frontend: Vitest, co-located `*.test.tsx`.
 
 ## Before pushing
-- Backend: `python -m pytest -q`, `python scripts/check_env_parity.py`,
-  `python scripts/check_alembic_revisions.py`.
+- Backend (run from `backend/`): `python -m pytest -q`,
+  `python scripts/check_env_parity.py`, `python scripts/check_alembic_revisions.py`.
 - Frontend: `npm run test:run`, `npm run build`.
 - These all run in CI (`.github/workflows/ci.yml`).
 
