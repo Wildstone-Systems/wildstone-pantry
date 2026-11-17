@@ -1,0 +1,65 @@
+olaresManifest.version: '0.12.0'
+olaresManifest.type: app
+apiVersion: v3
+metadata:
+  name: pantryos
+  appid: pantryos
+  title: PantryOS
+  version: '0.1.0'
+  description: Household inventory, recipes, meal planning, and shopping lists.
+  icon: https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/v0.0.1-alpha/frontend/public/pwa-192.png
+  categories:
+    - Lifestyle
+entrances:
+  - name: pantryos
+    host: pantryos
+    port: 8000
+    title: PantryOS
+    icon: https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/v0.0.1-alpha/frontend/public/pwa-192.png
+    authLevel: private
+    openMethod: window
+spec:
+  versionName: '0.0.1-alpha'
+  fullDescription: Track food inventory, plan meals, and maintain a shared household shopping list.
+  developer: Wildstone Systems
+  submitter: Wildstone Systems
+  website: https://github.com/Wildstone-Systems/wildstone-pantry
+  sourceCode: https://github.com/Wildstone-Systems/wildstone-pantry
+  doc: https://github.com/Wildstone-Systems/wildstone-pantry/blob/main/docs/getting-started.md
+  locale:
+    - en-US
+  license:
+    - text: AGPL-3.0-or-later
+      url: https://github.com/Wildstone-Systems/wildstone-pantry/blob/main/LICENSE
+  supportArch:
+    - amd64
+    - arm64
+  onlyAdmin: true
+  accelerator:
+    - mode: cpu
+      requiredCpu: 100m
+      limitedCpu: '2'
+      requiredMemory: 256Mi
+      limitedMemory: 1Gi
+      requiredDisk: 256Mi
+      limitedDisk: 2Gi
+options:
+  shared: true
+  mobileSupported: true
+  dependencies:
+    - name: olares
+      type: system
+      version: '>=1.12.6-0'
+workloadReplicas:
+  pantryos: 1
+middleware:
+  postgres:
+    username: pantryos
+    databases:
+      - name: pantryos
+envs:
+  - envName: CONFIG_SECRET_KEY
+    type: password
+    required: true
+    editable: false
+    description: PantryOS Fernet encryption key. Save the same key for upgrades and restores.

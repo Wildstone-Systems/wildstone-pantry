@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 0.0.1-alpha
+description: PantryOS household inventory, meals, and shopping on Olares
+name: pantryos
+type: application
+version: 0.1.0
