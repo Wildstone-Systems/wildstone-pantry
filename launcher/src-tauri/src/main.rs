@@ -77,7 +77,7 @@ fn generate_env(port: u16) -> String {
          POSTGRES_PASSWORD={pg_hex}\n\
          CONFIG_SECRET_KEY={fernet_key}\n\
          PANTRYOS_PORT={port}\n\
-         AUTH_ENABLED=false\n",
+         AUTH_ENABLED=true\n",
         fernet_key = urlsafe_b64(&fernet),
     )
 }

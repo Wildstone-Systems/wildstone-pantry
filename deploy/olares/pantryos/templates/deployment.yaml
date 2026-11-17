@@ -34,8 +34,10 @@ spec:
           env:
             - name: ENVIRONMENT
               value: production
+            # Every request needs a credential: a login, a paired device key
+            # (dk_, incl. kiosk tablets) or an agent key (X-Agent-Key).
             - name: AUTH_ENABLED
-              value: "false"
+              value: "true"
             # Empty makes the backend give its open-mode auto-admin a random
             # password instead of the public built-in default (matches
             # docker-compose.product.yml).

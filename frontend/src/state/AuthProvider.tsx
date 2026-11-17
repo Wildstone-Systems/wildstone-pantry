@@ -3,6 +3,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import { api } from "@/api/client";
 import type { Account, AuthTokenResponse } from "@/api/types";
 import { clearToken, getToken, setToken } from "@/auth";
+import { ROUTES } from "@/routes/paths";
 
 /**
  * Admin session state (ADR 0004). The account gates the protected admin surface
@@ -23,6 +24,16 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+// Pages that must stay reachable without a credential (no redirect loop).
+const CREDENTIAL_FREE_PATHS = [ROUTES.pair, ROUTES.setup, ROUTES.admin];
+
+function redirectToPairing() {
+  if (typeof window === "undefined") return;
+  const path = window.location.pathname;
+  if (CREDENTIAL_FREE_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) return;
+  window.location.assign(ROUTES.pair);
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
@@ -64,6 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (status === 401 && hadAuth) {
           clearToken();
           setAccount(null);
+        }
+        // Logins are required and this device has no credential: send it to
+        // pairing (which links to sign-in). Admin-only 401s carry no header.
+        if (status === 401 && error?.response?.headers?.["x-pantryos-auth"] === "required") {
+          redirectToPairing();
         }
         return Promise.reject(error);
       },

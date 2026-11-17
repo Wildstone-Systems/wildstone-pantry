@@ -30,7 +30,7 @@ Olares-managed PostgreSQL database.
    when prompted for `CONFIG_SECRET_KEY`.
 
    ```sh
-   olares-cli market upload ./pantryos-0.1.1.tgz
+   olares-cli market upload ./pantryos-0.1.2.tgz
    ```
 
 4. Open the private PantryOS entrance immediately after install. The
@@ -49,10 +49,11 @@ fresh database and leaves PantryOS's optional application-level scheduled
 backups disabled. Verify Olares backup and restore behavior before moving
 existing pantry data into this installation.
 
-PantryOS starts in open household mode (`AUTH_ENABLED=false`) and lets the
-first-run wizard switch on accounts. The chart sets `AUTH_PERSONAL_PASSWORD`
-to empty so the built-in open-mode admin gets a random password, never the
-public default.
+PantryOS starts locked (`AUTH_ENABLED=true`): every API request needs a
+login, a paired device key (`dk_`, which is how a kiosk tablet connects) or an
+agent key sent as `X-Agent-Key` (n8n, scripts, AI agents). On first start the
+app shows the claim-admin screen. The chart sets `AUTH_PERSONAL_PASSWORD` to
+empty so no public default password ever exists.
 
 To rebuild the package from this directory, run `helm package ./pantryos`
 from its parent directory.

@@ -210,11 +210,11 @@ By default, anyone on your local network can. That is the intended setup — it
 is how you use PantryOS from the kitchen tablet — but it is worth being
 deliberate about:
 
-- **Kiosk mode is the default.** There is no login screen, and anyone who can
-  open the address has full access, including the admin screens. On a home
-  network you control, that is usually what you want.
-- **To require a login**, use the first-run wizard's "household accounts"
-  option, or set `AUTH_ENABLED=true` in `.env` before the first start.
+- **Login is required by default.** On first start you claim the admin
+  account. A kitchen tablet is paired once from the admin screens (device
+  key); automations use an agent key sent as the `X-Agent-Key` header.
+- **To run without logins** (trusted, isolated network only), set
+  `AUTH_ENABLED=false` in `.env`. Admin screens still require a login.
 - **To confine it to this one machine**, set `PANTRYOS_BIND=127.0.0.1` in
   `.env` and restart.
 - **PantryOS is not exposed to the internet** by any of this. Making it

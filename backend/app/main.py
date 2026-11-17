@@ -161,6 +161,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-PantryOS-Auth"],
     )
 
     # /api/v1 alias (ADR 0018 §8): native clients pin the versioned prefix;

@@ -15,6 +15,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.core.security import auth_enabled_effective
 from app.db import get_db
 from app.services.app_settings import (
     KEY_AUTH_ENABLED_OVERRIDE,
@@ -64,7 +66,9 @@ def status_route(db: Session = Depends(get_db)) -> SetupStatus:
         completed=setup_completed(db),
         needs_admin=needs_admin_setup(db),
         household_name=get_setting(db, KEY_HOUSEHOLD_NAME),
-        accounts_mode=is_true(db, KEY_AUTH_ENABLED_OVERRIDE),
+        # Effective, not just the wizard's own override: when the deployment
+        # ships with AUTH_ENABLED=true, the wizard must not offer open mode.
+        accounts_mode=auth_enabled_effective(db),
     )
 
 
@@ -78,6 +82,11 @@ def household_route(payload: HouseholdRequest, db: Session = Depends(_require_se
 def mode_route(payload: ModeRequest, db: Session = Depends(_require_setup_open)) -> dict:
     if payload.mode == "accounts":
         set_setting(db, KEY_AUTH_ENABLED_OVERRIDE, TRUE)
+    elif settings.auth_enabled:
+        raise HTTPException(
+            status_code=409,
+            detail="This installation requires logins (AUTH_ENABLED=true); open mode is not available.",
+        )
     else:
         # Open household mode on the LAN requires the explicit acknowledgment
         # (owner decision on ADR 0018 Q43-2): no silent everyone-is-admin.

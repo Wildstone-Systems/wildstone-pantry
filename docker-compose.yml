@@ -25,9 +25,9 @@ services:
     container_name: pantryos-backend
     environment:
       DATABASE_URL: postgresql+psycopg://pantryos:pantryos@postgres:5432/pantryos
-      # Defaults to a friction-free self-hosted setup; override from the shell
-      # or an .env file without editing this file.
-      AUTH_ENABLED: "${AUTH_ENABLED:-false}"
+      # Secure by default; override from the shell or an .env file
+      # (AUTH_ENABLED=false) for a throwaway local setup.
+      AUTH_ENABLED: "${AUTH_ENABLED:-true}"
       # Where people open PantryOS in a browser, told to Wildstone at pairing
       # for its dashboard's Pantry card (ADR 0026 §7). Empty = not told.
       PANTRYOS_PUBLIC_URL: "${PANTRYOS_PUBLIC_URL:-}"

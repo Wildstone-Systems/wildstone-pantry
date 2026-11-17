@@ -21,7 +21,7 @@ services:
       # See the repo-root product compose: AUTH_ENABLED alone is a trap, since
       # compose only forwards the variables it lists and the backend would then
       # start on its insecure default password (or refuse to, under production).
-      AUTH_ENABLED: "${AUTH_ENABLED:-false}"
+      AUTH_ENABLED: "${AUTH_ENABLED:-true}"
       AUTH_PERSONAL_EMAIL: "${AUTH_PERSONAL_EMAIL:-admin@pantryos.local}"
       AUTH_PERSONAL_PASSWORD: "${AUTH_PERSONAL_PASSWORD:-}"
       CONFIG_SECRET_KEY: "${CONFIG_SECRET_KEY:?set CONFIG_SECRET_KEY (Fernet key)}"

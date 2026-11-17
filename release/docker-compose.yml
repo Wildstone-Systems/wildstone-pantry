@@ -32,10 +32,10 @@ services:
       ENVIRONMENT: production
       DATABASE_URL: "postgresql+psycopg://pantryos_app:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/pantryos"
       CONFIG_SECRET_KEY: "${CONFIG_SECRET_KEY:?set CONFIG_SECRET_KEY in .env (Fernet key)}"
-      # Default is kiosk mode: no login, anyone who can reach the address has
-      # full access. The in-app first-run wizard is the supported way to turn
-      # on household accounts; these two exist so the env knob also works.
-      AUTH_ENABLED: "${AUTH_ENABLED:-false}"
+      # Default is locked: every request needs a login, a paired device key or
+      # an agent key. First start shows the claim-admin screen. Set
+      # AUTH_ENABLED=false only for a trusted, isolated network.
+      AUTH_ENABLED: "${AUTH_ENABLED:-true}"
       AUTH_PERSONAL_EMAIL: "${AUTH_PERSONAL_EMAIL:-admin@pantryos.local}"
       AUTH_PERSONAL_PASSWORD: "${AUTH_PERSONAL_PASSWORD:-}"
       # The UI is served by the backend on this same port, so there is no

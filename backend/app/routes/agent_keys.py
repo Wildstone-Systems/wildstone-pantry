@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.security import require_user
+from app.core.security import require_login
 from app.db import get_db
 from app.schemas.agent_key import (
     AgentKeyCreate,
@@ -17,14 +17,14 @@ router = APIRouter(prefix="/agent-keys", tags=["agent-keys"])
 
 
 @router.get("", response_model=AgentKeyListResponse)
-def list_agent_keys_route(_user=Depends(require_user), db: Session = Depends(get_db)) -> AgentKeyListResponse:
-    return AgentKeyListResponse(keys=[AgentKeyRead.model_validate(row) for row in list_agent_keys(db)])
+def list_agent_keys_route(user=Depends(require_login), db: Session = Depends(get_db)) -> AgentKeyListResponse:
+    return AgentKeyListResponse(keys=[AgentKeyRead.model_validate(row) for row in list_agent_keys(db, user=user)])
 
 
 @router.post("", response_model=AgentKeyCreatedResponse)
 def create_agent_key_route(
     payload: AgentKeyCreate,
-    user=Depends(require_user),
+    user=Depends(require_login),
     db: Session = Depends(get_db),
 ) -> AgentKeyCreatedResponse:
     try:
@@ -37,11 +37,11 @@ def create_agent_key_route(
 @router.delete("/{key_id}", response_model=AgentKeyRead)
 def revoke_agent_key_route(
     key_id: UUID,
-    _user=Depends(require_user),
+    user=Depends(require_login),
     db: Session = Depends(get_db),
 ) -> AgentKeyRead:
     try:
-        row = revoke_agent_key(db, key_id)
+        row = revoke_agent_key(db, key_id, user=user)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return AgentKeyRead.model_validate(row)

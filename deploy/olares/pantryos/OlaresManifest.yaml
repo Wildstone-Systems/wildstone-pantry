@@ -5,7 +5,7 @@ metadata:
   name: pantryos
   appid: pantryos
   title: PantryOS
-  version: '0.1.1'
+  version: '0.1.2'
   description: Household inventory, recipes, meal planning, and shopping lists.
   icon: https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/v0.0.2-alpha/frontend/public/pwa-192.png
   categories:
