@@ -25,7 +25,6 @@ from app.services.app_settings import (
     KEY_SETUP_COMPLETED,
     TRUE,
     get_setting,
-    is_true,
     set_setting,
 )
 from app.services.auth import needs_admin_setup
