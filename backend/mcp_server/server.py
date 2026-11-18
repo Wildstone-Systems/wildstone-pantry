@@ -111,6 +111,19 @@ def add_inventory(
 
 
 @mcp.tool()
+def resolve_items(lines: list[dict], create_missing: bool = False) -> Any:
+    """Map product lines (e.g. read from a receipt or order email) to catalog items.
+
+    `lines` is a list of {"name": str, "barcode"?: str, "brand"?: str}, up to 100.
+    Each result has match = barcode | existing | created | not_found, plus
+    item_id and suggested_expiry_days. Default is a DRY RUN (nothing written):
+    show the user what would be created, then call again with
+    create_missing=True. This never changes stock — follow up with
+    add_inventory for each line."""
+    return _client().resolve_items(lines=lines, create_missing=create_missing)
+
+
+@mcp.tool()
 def list_inventory(location_id: str) -> Any:
     """List current on-hand inventory for a location."""
     return _client().list_inventory(location_id)

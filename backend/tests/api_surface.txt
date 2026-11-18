@@ -133,6 +133,7 @@ PATCH /api/shopping-list/{entry_id}
 POST /api/admin/integrations/{key}/test
 POST /api/agent-keys
 POST /api/agent/ingest-product-url
+POST /api/agent/resolve-items
 POST /api/ai/classifier/benchmark/corpus/diagnostic-freeze
 POST /api/ai/classifier/benchmark/corpus/freeze
 POST /api/ai/classifier/benchmark/corpus/reopen

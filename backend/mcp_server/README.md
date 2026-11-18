@@ -82,6 +82,12 @@ Recipe authoring/import: `preview_recipe`, `create_recipe`,
 `parse_recipe_text` → `ingest_recipe` (pasted text, or text the agent extracted
 from a recipe web page), `search_external_recipes` → `get_external_recipe`.
 
+Receipt / order-email intake (the agent reads the receipt itself):
+`resolve_items(lines)` → dry run showing which lines match existing items and
+which would be created → `resolve_items(lines, create_missing=True)` →
+`add_inventory` per line (expiry = today + `suggested_expiry_days` unless the
+package says otherwise). `resolve_items` never changes stock.
+
 Recipe nutrition: `recipe_nutrition` (result carries `basis` —
 `"ingredient_derived"` or `"source_override"` — and `provenance`),
 `set_recipe_nutrition_override(recipe_id, calories, protein_g, fat_g, carbs_g,
