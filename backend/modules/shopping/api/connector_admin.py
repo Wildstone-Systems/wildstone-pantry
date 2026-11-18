@@ -15,7 +15,6 @@ from app.core.crypto import SecretDecryptError, SecretStorageUnavailable
 from app.core.security import require_authenticated_admin
 from app.db import get_db
 from app.services.webhook_deliveries import list_recent_deliveries
-from modules.shopping.connectors import NotConfiguredError, get_connector
 from modules.shopping.schemas.connector_admin import (
     ConnectorConfigUpdate,
     ConnectorConfigView,
@@ -106,8 +105,7 @@ def test_config_route(key: str, db: Session = Depends(get_db)) -> ConnectorTestR
     _require_configurable(key)
 
     if key == "home_assistant":
-        # Not a purchase connector: the test is a signed `pantryos.test` POST to
-        # the configured webhook URL (ADR 0011).
+        # The test is a signed `pantryos.test` POST to the configured webhook URL (ADR 0011).
         from handlers.webhook_handler import send_test_event
 
         try:
@@ -118,16 +116,4 @@ def test_config_route(key: str, db: Session = Depends(get_db)) -> ConnectorTestR
             return ConnectorTestResult(ok=False, detail=f"{type(exc).__name__}: {exc}")
         return ConnectorTestResult(ok=True, detail="Test event delivered.")
 
-    connector = get_connector(key)
-    verify = getattr(connector, "verify", None)
-    if connector is None or verify is None:
-        raise HTTPException(status_code=400, detail=f"Connector '{key}' has no connection test")
-
-    config = cfg.get_effective(db, key)
-    try:
-        verify(config)
-    except NotConfiguredError as exc:
-        return ConnectorTestResult(ok=False, detail=str(exc))
-    except Exception as exc:  # imaplib/login/network errors — surface the reason
-        return ConnectorTestResult(ok=False, detail=f"{type(exc).__name__}: {exc}")
-    return ConnectorTestResult(ok=True, detail="Connected successfully.")
+    raise HTTPException(status_code=400, detail=f"Connector '{key}' has no connection test")

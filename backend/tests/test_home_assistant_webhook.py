@@ -243,4 +243,4 @@ def test_failed_delivery_is_recorded(client: httpx.Client, monkeypatch) -> None:
 def test_deliveries_endpoint_scoping(client: httpx.Client) -> None:
     h = _admin_headers(client)
     assert client.get("/api/admin/integrations/home_assistant/deliveries").status_code == 401
-    assert client.get("/api/admin/integrations/imap/deliveries", headers=h).status_code == 404
+    assert client.get("/api/admin/integrations/instacart/deliveries", headers=h).status_code == 404

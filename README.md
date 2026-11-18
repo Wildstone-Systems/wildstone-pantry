@@ -23,7 +23,7 @@ planning and shopping in one app that runs on your own hardware.
   can cook tonight, at a glance.
 - **📦 Inventory** — track stock across fridge, freezer, pantry and more.
   Lots, containers, best-by dates, waste and a full history.
-- **📷 Fast intake** — scan barcodes, import receipts (text, photo or email)
+- **📷 Fast intake** — scan barcodes or add by hand; bulk-add from receipts or emails through an AI agent (MCP)
   and purchase history.
 - **🍝 Recipes** — see what you can make now, import recipes from the web, and
   cook along step by step. Cooking takes ingredients out of stock for you.

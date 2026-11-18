@@ -153,7 +153,7 @@ export function ClassifierCard() {
       }
     >
       <Text size="sm">
-        Optional item classification, configured separately from receipt vision and other AI providers. Shadow results
+        Optional item classification, configured separately from other AI providers. Shadow results
         never change pantry items, identities, recipes, or nutrition.
       </Text>
       {query.isError ? <Alert color="red">Classifier settings could not be loaded. Reload to try again.</Alert> : null}

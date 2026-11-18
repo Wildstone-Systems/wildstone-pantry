@@ -94,16 +94,6 @@ class Settings(BaseSettings):
     # entry, e.g. https://<host>/api/integrations/kroger/oauth/callback.
     kroger_redirect_uri: str = ""
 
-    # Purchase intake over IMAP (step 5b, IN). Parse order-confirmation emails
-    # from the family's own mailbox — no Gmail API / Google CASA burden. These env
-    # values are the FALLBACK/seed; the in-app admin Integrations screen stores an
-    # override in the DB (encrypted) that takes precedence at request time (ADR 0009).
-    imap_host: str = ""
-    imap_port: int = 993
-    imap_username: str = ""
-    imap_password: str = ""
-    imap_mailbox: str = "INBOX"
-
     # Symmetric key (Fernet, urlsafe-base64) used to encrypt connector credentials
     # stored in the DB via the admin Integrations screen (ADR 0009). Empty = the app
     # refuses to persist secrets in-app (env-only config still works). Generate with

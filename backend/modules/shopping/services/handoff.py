@@ -4,8 +4,8 @@ The middle tier between "API cart" and "printable list": a guided session
 PantryOS owns end to end. Items are snapshots of the pending buy list; each
 row deep-links into the retailer's own site (mapping-aware via ``best_link``);
 the post-shop confirmation is the purchase-history API nobody offers —
-``complete`` reuses the same idempotent Purchase machinery as receipts and
-CSV imports (same ledger semantics, ADR 0002/0008).
+``complete`` records an idempotent Purchase and adds the stock to inventory
+(same ledger semantics, ADR 0002/0008).
 """
 
 from __future__ import annotations

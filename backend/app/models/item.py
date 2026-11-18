@@ -133,5 +133,4 @@ class Item(Base):
     transactions = relationship("InventoryTransaction", back_populates="item", passive_deletes=True)
     inventory_rows = relationship("Inventory", back_populates="item", passive_deletes=True)
     barcode_aliases = relationship("BarcodeAlias", back_populates="item", passive_deletes=True)
-    receipt_lines = relationship("ReceiptLineItem", back_populates="matched_item")
     purchase_lines = relationship("PurchaseLineItem", back_populates="matched_item")

@@ -74,16 +74,6 @@ EXAMPLE_EMAIL_DOMAINS = {
     "home.local", "else.local", "b.local", "x.com",
     "users.noreply.github.com",
 }
-RECEIPT_EMAIL_DOMAINS = {
-    "kroger.com", "walmart.com", "target.com", "costco.com",
-    "amazon.com", "instacart.com", "samsclub.com", "wholefoods.com",
-    "traderjoes.com", "aldi.com",
-}
-RECEIPT_EMAIL_PATHS = {
-    "backend/modules/shopping/services/email_receipt_fetcher.py",
-    "backend/tests/test_purchase_connectors.py",
-}
-
 SENSITIVE_FILENAMES = re.compile(
     r"(?:^|/)(?:\.env(?!\.example$)(?:\..+)?|id_rsa|id_ed25519|kubeconfig|\.htpasswd|\.npmrc|\.pypirc)$"
     r"|\.(?:pem|key|p12|pfx|jks|sqlite3?|db)$"
@@ -133,8 +123,6 @@ def main() -> int:
                     if name == "email":
                         domain = match.group(0).rsplit("@", 1)[-1].lower()
                         if domain in EXAMPLE_EMAIL_DOMAINS or domain.endswith(".example.com"):
-                            continue
-                        if domain in RECEIPT_EMAIL_DOMAINS and rel in RECEIPT_EMAIL_PATHS:
                             continue
                         if rel == "launcher/src-tauri/tauri.conf.json" and match.group(0).endswith("@2x.png"):
                             continue

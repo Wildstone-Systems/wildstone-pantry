@@ -37,7 +37,7 @@ export function AdminHome() {
         <Card withBorder padding="lg" component={Link} to={ROUTES.adminIntegrations}>
           <Title order={4}>Integrations</Title>
           <Text c="dimmed" size="sm">
-            Connect vendor services (email receipts) to feed inventory.
+            Connect stores, lookups, SSO and other services.
           </Text>
         </Card>
         <Card withBorder padding="lg" component={Link} to={ROUTES.adminAgentKeys}>

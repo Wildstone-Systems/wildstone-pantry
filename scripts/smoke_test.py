@@ -131,14 +131,9 @@ def main() -> int:
     barcode_lookup = requests.get(f"{BASE_URL}/api/barcodes/lookup/{barcode}", headers=headers, timeout=10)
     require(barcode_lookup.status_code == 200, "Barcode lookup failed")
 
-    log("12/20", "Ingesting receipt text")
-    receipt_res = requests.post(
-        f"{BASE_URL}/api/receipts/ingest",
-        json={"location_id": loc_a_id, "raw_text": "smoke apples,2,each\\nsmoke bread,1,each", "source_filename": "smoke.txt"},
-        headers=headers,
-        timeout=15,
-    )
-    require(receipt_res.status_code == 200, f"Receipt ingest failed: {receipt_res.status_code}")
+    log("12/20", "Reading purchase history")
+    purchases_res = requests.get(f"{BASE_URL}/api/purchases", headers=headers, timeout=10)
+    require(purchases_res.status_code == 200, f"Purchase history read failed: {purchases_res.status_code}")
 
     log("13/20", "Creating recipe and ingredients")
     recipe_res = requests.post(

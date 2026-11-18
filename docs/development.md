@@ -100,7 +100,7 @@ Ports: Postgres `15432`, API `18000`, frontend `15173`.
 
 ## Smoke test
 
-Runs an end-to-end flow (login, items, inventory, receipts, recipes, insights)
+Runs an end-to-end flow (login, items, inventory, purchases, recipes, insights)
 against a live API backed by Postgres:
 
 ```bash

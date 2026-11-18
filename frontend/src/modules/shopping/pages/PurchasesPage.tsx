@@ -10,20 +10,13 @@ import {
   Title,
 } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 
-import { ROUTES } from "@/routes/paths";
 import { LocationPill } from "@/components/LocationPill";
-import { useAppState } from "@/state/AppStateProvider";
 
 import type { PurchaseDetailResponse, PurchaseRead } from "../hooks/shopping-hooks";
-import { usePurchases, usePurchaseDetail, useIngestReceiptImage } from "../hooks/shopping-hooks";
-
-import { ReviewedPurchaseCsvCard } from "../components/ReviewedPurchaseCsvCard";
+import { usePurchases, usePurchaseDetail } from "../hooks/shopping-hooks";
 
 export function PurchasesPage() {
-  const { selectedLocationId } = useAppState();
-
   const purchasesQuery = usePurchases(25);
   const purchases = purchasesQuery.data ?? [];
 
@@ -43,10 +36,6 @@ export function PurchasesPage() {
     return purchases.find((row) => row.id === selectedPurchaseId) ?? null;
   }, [purchases, selectedPurchaseId]);
 
-  const receiptImageMutation = useIngestReceiptImage();
-
-  const busy = receiptImageMutation.isPending;
-
   return (
     <Stack>
       <Group justify="space-between">
@@ -54,53 +43,15 @@ export function PurchasesPage() {
         <LocationPill />
       </Group>
 
-      <ReviewedPurchaseCsvCard />
-
-      <Card withBorder>
-        <Title order={3} mb="xs">
-          Receipt Image Upload
-        </Title>
-        <Text size="sm" c="dimmed" mb="sm">
-          Upload a receipt photo to automatically add items to inventory (uses the selected location).
-        </Text>
-        <Stack gap="sm">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0] ?? null;
-              if (!file) return;
-              receiptImageMutation.mutate({ locationId: selectedLocationId!, file });
-              e.currentTarget.value = "";
-            }}
-            disabled={!selectedLocationId || busy}
-          />
-          {!selectedLocationId ? (
-            <Text size="sm" c="dimmed">
-              Select a location first (top-right).
-            </Text>
-          ) : null}
-          <Group>
-            <Text size="sm" c="dimmed">
-              Need text import instead?
-            </Text>
-            <Button component={Link} to={ROUTES.ingest} variant="default" size="xs">
-              Ingest
-            </Button>
-          </Group>
-        </Stack>
-      </Card>
-
       <Card withBorder>
         <Group justify="space-between" align="flex-end" wrap="wrap" mb="xs">
-          <Title order={3}>Purchase Imports</Title>
+          <Title order={3}>Purchase history</Title>
           <Group>
             <Button variant="default" onClick={() => purchasesQuery.refetch()} loading={purchasesQuery.isFetching}>
               Refresh
             </Button>
             <Select
-              aria-label="Select purchase import"
+              aria-label="Select purchase"
               data={purchases.map((purchase) => ({
                 value: purchase.id,
                 label: `${purchase.purchased_on ? `${purchase.purchased_on} ` : ""}${purchase.merchant ? `${purchase.merchant} ` : ""}(${purchase.line_count} lines)`,
@@ -117,7 +68,7 @@ export function PurchasesPage() {
         <Text size="sm" c="dimmed" mb="sm">
           {selectedPurchase
             ? `Selected: ${selectedPurchase.id} | status: ${selectedPurchase.status} | created: ${new Date(selectedPurchase.created_at).toLocaleString()}`
-            : "No import selected."}
+            : "No purchase selected."}
         </Text>
 
         <ScrollArea>
@@ -147,7 +98,7 @@ export function PurchasesPage() {
                 <Table.Tr>
                   <Table.Td colSpan={5}>
                     <Text size="sm" c="dimmed">
-                      No purchase lines to display for the selected import.
+                      No lines recorded for this purchase. Purchases are recorded when you complete a store hand-off.
                     </Text>
                   </Table.Td>
                 </Table.Tr>

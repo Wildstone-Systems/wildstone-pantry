@@ -18,8 +18,6 @@ from app.models.inventory_transaction import InventoryTransaction
 from app.models.item import Item
 from app.models.purchase import Purchase
 from app.models.purchase_line_item import PurchaseLineItem
-from app.models.receipt import Receipt
-from app.models.receipt_line_item import ReceiptLineItem
 from app.models.recipe import Recipe
 from app.models.recipe_cook_event import RecipeCookEvent
 from app.models.recipe_image import RecipeImage
@@ -82,8 +80,6 @@ __all__ = [
     "Item",
     "Purchase",
     "PurchaseLineItem",
-    "Receipt",
-    "ReceiptLineItem",
     "RestockSuggestion",
     "Recipe",
     "RecipeCookEvent",
@@ -98,8 +94,6 @@ __all__ = [
     "WebhookEvent",
 ]
 
-from modules.shopping.receipt_review_models import ReceiptReviewDraft  # noqa: E402,F401
 
-from modules.shopping.purchase_review_models import PurchaseCsvClaim, PurchaseReviewDraft  # noqa: E402,F401
 from modules.planning.models.substitution_review import SubstitutionReview  # noqa: E402,F401
 from modules.mealplan.models import MealPlanCalendarFeed, MealPlanEntry, MealPlanExcludedItem  # noqa: E402,F401

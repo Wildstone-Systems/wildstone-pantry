@@ -104,7 +104,7 @@ Your example — "here's a link, add it to the shopping list and inventory later
 ```
 ingest_product_url(url="https://store.example.com/olive-oil")
   → catalog item + shopping-list need (source=agent)
-… you buy it → logging the receipt/purchase checks the need off and adds the lot.
+… you buy it → `mark_shopping_item` checks the need off and `add_inventory` adds the lot.
 ```
 
 ## Networking
