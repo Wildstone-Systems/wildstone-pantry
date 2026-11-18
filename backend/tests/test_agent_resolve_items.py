@@ -82,3 +82,12 @@ def test_rejects_empty_and_oversized_batches(client: httpx.Client) -> None:
     assert client.post(URL, headers=h, json={"lines": []}).status_code == 422
     too_many = [{"name": f"item {i}"} for i in range(101)]
     assert client.post(URL, headers=h, json={"lines": too_many}).status_code == 422
+
+
+def test_item_shelf_life_overrides_estimate(client: httpx.Client) -> None:
+    h = _admin(client)
+    client.post("/api/items", headers=h, json={"name": "Fresh basil", "default_expiration_days": 3})
+
+    body = client.post(URL, headers=h, json={"lines": [{"name": "Fresh basil"}]}).json()
+
+    assert body["items"][0]["suggested_expiry_days"] == 3
