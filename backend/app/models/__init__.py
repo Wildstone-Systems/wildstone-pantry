@@ -1,8 +1,6 @@
 from app.models.agent_key import AgentKey
 from app.models.app_setting import AppSetting
 from app.models.device_key import DeviceKey
-from app.models.entitlement_state import EntitlementState
-from app.models.integration_connection import IntegrationConnection
 from app.models.auth_token import AuthToken
 from app.models.barcode_alias import BarcodeAlias
 from app.models.base import Base
@@ -61,8 +59,6 @@ __all__ = [
     "AgentKey",
     "AppSetting",
     "DeviceKey",
-    "EntitlementState",
-    "IntegrationConnection",
     "AuthToken",
     "BarcodeAlias",
     "Base",

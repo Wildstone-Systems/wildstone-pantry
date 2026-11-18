@@ -6,7 +6,7 @@ walkthrough for the common combo — **LLDAP** as the directory, fronted by
 **Authelia**, **authentik**, **Keycloak**, or **Pocket ID** as the OIDC
 provider — but any standards-compliant OIDC provider works.
 
-SSO is entirely free and self-hosted: it touches no PantryOS Connect service
+SSO is entirely free and self-hosted: it touches no hosted service
 and needs no environment variables. Everything is configured from the admin
 UI.
 

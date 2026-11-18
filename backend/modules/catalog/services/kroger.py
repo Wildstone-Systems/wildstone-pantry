@@ -104,19 +104,16 @@ def search_kroger_offers(
     client_id: str,
     client_secret: str,
     location_id: str | None = None,
-    token_override: str | None = None,
 ) -> list[dict]:
     """Search Kroger's catalog. Empty (no HTTP) when dormant. Raises ProviderRateLimited on 429.
 
-    Prices are only returned when ``location_id`` is set (a Kroger store id).
-    ``token_override`` (ADR 0018 §3) supplies a broker-minted access token so
-    brokered instances search without local credentials."""
+    Prices are only returned when ``location_id`` is set (a Kroger store id)."""
     term = (term or "").strip()
-    if not term or not (token_override or (client_id and client_secret)):
+    if not term or not (client_id and client_secret):
         return []
 
     try:
-        token = token_override or _fetch_token(client_id, client_secret)
+        token = _fetch_token(client_id, client_secret)
     except ProviderRateLimited:
         raise
     except httpx.HTTPError as exc:

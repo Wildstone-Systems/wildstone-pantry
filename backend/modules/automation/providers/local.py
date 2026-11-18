@@ -1,4 +1,4 @@
-"""Local AI providers (ADR 0018 §9): free, user-configured, no entitlement.
+"""Local AI providers (ADR 0018 §9): free, user-configured.
 
 ``ollama`` (a local model server) and ``openai_compat`` (any OpenAI-style
 endpoint: OpenAI, OpenRouter, LM Studio, llama.cpp server). Both are

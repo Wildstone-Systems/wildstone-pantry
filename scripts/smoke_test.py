@@ -182,10 +182,9 @@ def main() -> int:
     me_res = requests.get(f"{BASE_URL}/api/auth/me", headers=headers, timeout=10)
     require(me_res.status_code == 200, "Auth me failed")
 
-    log("18/20", "Checking entitlement endpoint")
-    entitlement_res = requests.get(f"{BASE_URL}/api/entitlement", timeout=10)
-    require(entitlement_res.status_code == 200, "Entitlement read failed")
-    require(entitlement_res.json().get("mode") == "free", "Expected free mode in smoke stack")
+    log("18/20", "Checking version endpoint")
+    version_res = requests.get(f"{BASE_URL}/api/system/version", timeout=10)
+    require(version_res.status_code == 200, "Version read failed")
 
     log("19/20", "Archiving item while preserving catalog identity and transaction history")
     history_url = f"{BASE_URL}/api/inventory/transactions?location_id={loc_a_id}&limit=500"

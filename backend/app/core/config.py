@@ -110,18 +110,6 @@ class Settings(BaseSettings):
     # `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
     config_secret_key: str = ""
 
-    # Productization seam (ADR 0012). Both empty = "free mode": a fully-functional
-    # self-hosted instance where everything runs locally and nothing phones home.
-    # Point these at the hosted PantryOS backend to move an instance into
-    # "connected mode" — remote entitlement (premium tiers) and OAuth brokering
-    # for store integrations — WITHOUT shipping any third-party client secrets.
-    license_server_url: str = ""
-    integration_broker_url: str = ""
-    # Ed25519 public key(s) for verifying entitlement tokens OFFLINE, comma-
-    # separated urlsafe-base64 (ADR 0018 §2). Ships with the product build;
-    # accepts two entries during signer rotation.
-    license_public_keys: str = ""
-
     # USDA FoodData Central — a second barcode source for US branded groceries
     # that Open Food Facts often misses (public-domain data). Dormant until set;
     # get a free key at https://api.data.gov/signup/ .

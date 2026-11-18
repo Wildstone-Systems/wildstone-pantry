@@ -5,7 +5,6 @@ import { AccessCard } from "@/components/AccessCard";
 import { ROUTES } from "@/routes/paths";
 import { useAuth } from "@/state/AuthProvider";
 
-import { ConnectCard } from "../components/ConnectCard";
 import { DevicesCard } from "../components/DevicesCard";
 import { SystemCard } from "../components/SystemCard";
 
@@ -47,13 +46,11 @@ export function AdminHome() {
             Mint long-lived keys so an agent can act on PantryOS on your behalf.
           </Text>
         </Card>
-        {/* Connected-services settings will live here (ADR 0018). */}
       </SimpleGrid>
 
       <AccessCard />
       <DevicesCard />
       <SystemCard />
-      <ConnectCard />
     </Stack>
   );
 }

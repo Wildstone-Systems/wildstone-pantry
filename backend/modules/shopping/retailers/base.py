@@ -2,8 +2,7 @@
 
 One retailer = one adapter declaring capability keys. ``capabilities()`` is
 static — what the retailer CAN do, never varying per install; ``available(db)``
-is the subset usable right now (credentials present, brokered entitlement
-live). The UI renders capabilities() and greys out the difference — that's
+is the subset usable right now (credentials present). The UI renders capabilities() and greys out the difference — that's
 what lets it say "Kroger: cart (connect to enable)" instead of hiding the
 option.
 

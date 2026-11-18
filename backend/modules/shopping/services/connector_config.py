@@ -80,7 +80,7 @@ _SPECS: dict[str, list[Field]] = {
         Field("api_key", secret=True),
         Field("base_url"),
     ],
-    # Local AI providers (ADR 0018 §9): free, no entitlement, dormant until
+    # Local AI providers (ADR 0018 §9): free, dormant until
     # configured. Local always wins over cloud AI (Q47-2).
     "ollama": [
         Field("base_url"),

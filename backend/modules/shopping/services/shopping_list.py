@@ -550,15 +550,12 @@ def kroger_cart_items(db: Session) -> tuple[list[dict], list[dict]]:
 
 
 def push_to_kroger_cart(db: Session) -> dict:
-    """Add the pending buy list to the user's Kroger cart (Phase 4 + ADR 0018 §3).
+    """Add the pending buy list to the user's Kroger cart (Phase 4).
 
-    BYO local credentials keep the original path; with none, a brokered
-    connection (PantryOS Connect) supplies short-lived access tokens instead.
-    Raises ValueError when neither is available; KrogerNotConnected if no
-    account is linked; KrogerCartError on an API failure;
-    BrokerEntitlementLapsed when the subscription behind a brokered
-    connection is inactive. Returns added vs skipped plus the cart URL."""
-    from app.services import broker_connections, provider_keys
+    Uses the household's own Kroger client credentials. Raises ValueError when
+    they aren't set; KrogerNotConnected if no account is linked;
+    KrogerCartError on an API failure. Returns added vs skipped plus the cart URL."""
+    from app.services import provider_keys
     from modules.shopping.services import kroger_cart as kc
 
     orderable, skipped = kroger_cart_items(db)
@@ -567,12 +564,6 @@ def push_to_kroger_cart(db: Session) -> dict:
     client_id, client_secret = provider_keys.kroger_credentials(db)
     if client_id and client_secret:
         rejected = kc.add_to_cart(db, items, client_id=client_id, client_secret=client_secret)
-    elif broker_connections.get_connection(db, "kroger") is not None:
-
-        def _brokered_token(force: bool) -> str:
-            return broker_connections.access_token(db, "kroger", force=force)
-
-        rejected = kc.add_to_cart_via(items, get_token=_brokered_token)
     else:
         raise ValueError("Kroger client credentials are not configured.")
 

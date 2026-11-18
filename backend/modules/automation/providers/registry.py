@@ -1,8 +1,7 @@
 """AI provider registry (ADR 0018 §9), mirroring the connector registry.
 
-Resolution order is the owner's Q47-2 decision: a configured LOCAL provider
-always wins (self-host ethos, zero cloud cost); the cloud provider serves
-entitled+consented households with nothing local configured. No provider →
+Resolution: the first configured local provider
+is used (self-host ethos, zero cloud cost). No provider →
 None, and callers degrade to the deterministic parsers.
 """
 
@@ -12,10 +11,9 @@ from sqlalchemy.orm import Session
 
 from modules.automation.providers.base import AIProvider
 from modules.automation.providers.local import OllamaProvider, OpenAICompatProvider
-from modules.automation.providers.wildstone import WildstoneProvider
 
 # Local providers first — local wins by default (Q47-2).
-_PROVIDERS: list[AIProvider] = [OllamaProvider(), OpenAICompatProvider(), WildstoneProvider()]
+_PROVIDERS: list[AIProvider] = [OllamaProvider(), OpenAICompatProvider()]
 
 
 def list_providers() -> list[AIProvider]:

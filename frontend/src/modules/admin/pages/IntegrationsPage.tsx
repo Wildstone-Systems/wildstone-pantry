@@ -3,12 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { api } from "@/api/client";
-import { FEATURE } from "@/api/entitlement";
 import { getApiErrorMessage } from "@/api/errors";
-import { FeatureGate } from "@/components/FeatureGate";
 
-import { BrokeredKrogerCard } from "../components/BrokeredKrogerCard";
-import { CloudAiCard } from "../components/CloudAiCard";
 import { ClassifierCard } from "../components/ClassifierCard";
 import { ClassifierEvaluationPanel } from "../components/ClassifierEvaluationPanel";
 import { CollapsibleCard } from "../components/CollapsibleCard";
@@ -685,8 +681,7 @@ export function IntegrationsPage() {
         AI (optional)
       </Title>
       <Text size="sm" c="dimmed">
-        Smarter receipt reading. Local providers keep everything on your hardware and always win over
-        cloud AI (ADR 0018).
+        Smarter receipt reading. Providers you configure here keep everything under your control.
       </Text>
       <ProviderKeyCard
         connector="ollama"
@@ -707,43 +702,12 @@ export function IntegrationsPage() {
           { name: "model", label: "Model", placeholder: "gpt-4o-mini" },
         ]}
       />
-      <CloudAiCard />
 
       <Title order={3} mt="md">
         Classifier (optional)
       </Title>
       <ClassifierCard />
       <ClassifierEvaluationPanel />
-
-      <Title order={3} mt="md">
-        Connected services
-      </Title>
-      <Text size="sm" c="dimmed">
-        Optional hosted extras (ADR 0018): store connections without registering your own developer keys, and
-        cloud AI. Everything above works without them.
-      </Text>
-      <FeatureGate
-        feature={FEATURE.storeIntegrations}
-        fallback={
-          <CollapsibleCard
-            id="brokered_store_connections"
-            title="Brokered store connections"
-            status={
-              <Badge variant="light" color="grape">
-                PantryOS Connect
-              </Badge>
-            }
-          >
-            <Text size="sm" c="dimmed">
-              With an activation key, connect Kroger (and future retailers) with one click — no developer
-              account, no keys to paste. This instance is running in free mode; bring-your-own keys above stay
-              free forever.
-            </Text>
-          </CollapsibleCard>
-        }
-      >
-        <BrokeredKrogerCard />
-      </FeatureGate>
     </Stack>
   );
 }

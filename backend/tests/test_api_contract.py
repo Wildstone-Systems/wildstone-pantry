@@ -33,8 +33,8 @@ def test_api_surface_matches_snapshot() -> None:
 
 
 def test_api_v1_alias_serves_the_same_api(client: httpx.Client) -> None:
-    plain = client.get("/api/entitlement")
-    versioned = client.get("/api/v1/entitlement")
+    plain = client.get("/api/system/version")
+    versioned = client.get("/api/v1/system/version")
     assert versioned.status_code == 200
     assert versioned.json() == plain.json()
     # Misses under the alias stay JSON 404s too.
