@@ -2,7 +2,7 @@ import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getToken } from "@/auth";
+import { getDeviceKey, getToken } from "@/auth";
 import { AuthProvider } from "@/state/AuthProvider";
 import { renderWithProviders } from "@/test-utils";
 
@@ -45,7 +45,9 @@ describe("Pair device page", () => {
     await user.type(screen.getByLabelText(/pairing code/i), " 123456-abcdef ");
     await user.click(screen.getByRole("button", { name: /pair device/i }));
 
-    await waitFor(() => expect(getToken()).toBe(deviceKey));
+    await waitFor(() => expect(getDeviceKey()).toBe(deviceKey));
+    // Pairing is not an admin login.
+    expect(getToken()).toBeNull();
     expect(apiPost).toHaveBeenCalledWith("/api/devices/pair", {
       code: "123456-abcdef",
       device_name: "Kitchen tablet",
@@ -67,6 +69,6 @@ describe("Pair device page", () => {
     await user.click(screen.getByRole("button", { name: /pair device/i }));
 
     expect(await screen.findByText(/invalid or expired pairing code/i)).toBeTruthy();
-    expect(getToken()).toBeNull();
+    expect(getDeviceKey()).toBeNull();
   });
 });

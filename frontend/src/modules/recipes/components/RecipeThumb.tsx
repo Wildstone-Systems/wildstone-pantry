@@ -2,6 +2,8 @@ import { Box } from "@mantine/core";
 import { ChefHat } from "lucide-react";
 import { useState, type CSSProperties } from "react";
 
+import { useAuthedImageSrc } from "@/api/useAuthedImageSrc";
+
 type Props = {
   src: string | null | undefined;
   /** Width; defaults to filling the parent. */
@@ -18,7 +20,8 @@ type Props = {
  * row of cards stays the same shape either way. Decorative (`alt=""`): the
  * recipe name is always rendered next to it.
  */
-export function RecipeThumb({ src, w = "100%", h, radius = 0, style }: Props) {
+export function RecipeThumb({ src: rawSrc, w = "100%", h, radius = 0, style }: Props) {
+  const src = useAuthedImageSrc(rawSrc);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const showImage = Boolean(src) && failedSrc !== src;
 

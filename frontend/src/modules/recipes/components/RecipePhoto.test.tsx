@@ -6,9 +6,14 @@ import { renderWithProviders } from "@/test-utils";
 
 const apiPost = vi.fn();
 const apiDelete = vi.fn();
+const apiGet = vi.fn();
 
 vi.mock("@/api/client", () => ({
-  api: { post: (...a: unknown[]) => apiPost(...a), delete: (...a: unknown[]) => apiDelete(...a) },
+  api: {
+    get: (...a: unknown[]) => apiGet(...a),
+    post: (...a: unknown[]) => apiPost(...a),
+    delete: (...a: unknown[]) => apiDelete(...a),
+  },
 }));
 
 import { RecipePhoto } from "./RecipePhoto";
@@ -21,6 +26,10 @@ describe("RecipePhoto", () => {
     apiDelete.mockReset();
     apiPost.mockResolvedValue({ data: { id: "r1", image_src: "/api/recipes/r1/image" } });
     apiDelete.mockResolvedValue({ data: null });
+    // Our own API images load through the signed-in client as blob URLs.
+    apiGet.mockResolvedValue({ data: new Blob(["img"], { type: "image/jpeg" }) });
+    URL.createObjectURL = vi.fn(() => "blob:recipe-r1");
+    URL.revokeObjectURL = vi.fn();
   });
   afterEach(cleanup);
 
@@ -52,10 +61,10 @@ describe("RecipePhoto", () => {
     renderWithProviders(
       <RecipePhoto {...BASE} imageSrc="/api/recipes/r1/image" hasUpload />,
     );
-    expect(await screen.findByRole("img", { name: "Chili" })).toHaveAttribute(
-      "src",
-      "/api/recipes/r1/image",
+    await waitFor(() =>
+      expect(screen.getByRole("img", { name: "Chili" })).toHaveAttribute("src", "blob:recipe-r1"),
     );
+    expect(apiGet).toHaveBeenCalledWith("/api/recipes/r1/image", { responseType: "blob" });
     expect(screen.getByRole("button", { name: /replace/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /remove/i })).toBeInTheDocument();
   });

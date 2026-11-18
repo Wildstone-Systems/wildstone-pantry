@@ -251,13 +251,7 @@ export function SetupPage() {
           <Stepper.Step label="Starter setup">
             <Stack mt="md">
               <Text>Start with some common storage locations{seeded ? " — done!" : "?"}</Text>
-              {loginsRequired && (
-                <Alert color="blue" variant="light">
-                  This installation requires a sign-in for every device. Create the first admin
-                  account now; pair kitchen tablets afterwards from Admin → Devices.
-                </Alert>
-              )}
-              <SimpleGrid cols={{ base: 1, sm: 2 }} hidden={loginsRequired}>
+              <SimpleGrid cols={{ base: 1, sm: 2 }}>
                 <Card withBorder padding="lg">
                   <Title order={5}>Minimal</Title>
                   <Text size="sm" c="dimmed" mt={4}>

@@ -2,6 +2,7 @@ import { Box, Button, FileButton, Group, Image, Text } from "@mantine/core";
 import { useState } from "react";
 
 import { getApiErrorMessage } from "@/api/errors";
+import { useAuthedImageSrc } from "@/api/useAuthedImageSrc";
 import { useAppState } from "@/state/AppStateProvider";
 
 import { useDeleteRecipeImage, useUploadRecipeImage } from "../hooks/recipes-hooks";
@@ -27,6 +28,7 @@ export function RecipePhoto({ recipeId, recipeName, imageSrc, hasUpload }: Props
   const upload = useUploadRecipeImage(recipeId);
   const remove = useDeleteRecipeImage(recipeId);
   const [hovering, setHovering] = useState(false);
+  const displaySrc = useAuthedImageSrc(imageSrc);
 
   const handleFile = async (file: File | null) => {
     if (!file) return;
@@ -72,7 +74,7 @@ export function RecipePhoto({ recipeId, recipeName, imageSrc, hasUpload }: Props
       style={{ position: "relative", borderRadius: 8, overflow: "hidden" }}
     >
       <Image
-        src={imageSrc}
+        src={displaySrc}
         alt={recipeName}
         // `contain`, not `cover`: a recipe photo is usually framed deliberately
         // and cropping it to a fixed box cuts the dish in half.

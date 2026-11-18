@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { getToken } from "../auth";
+import { getRequestCredential } from "../auth";
 import { getActiveProfileId } from "../profile";
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
@@ -25,7 +25,7 @@ export function apiBaseUrl(): string {
 }
 
 api.interceptors.request.use((config) => {
-  const token = getToken();
+  const token = getRequestCredential();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

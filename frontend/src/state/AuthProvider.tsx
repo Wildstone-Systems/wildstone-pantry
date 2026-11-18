@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 
 import { api } from "@/api/client";
 import type { Account, AuthTokenResponse } from "@/api/types";
-import { clearToken, getToken, setToken } from "@/auth";
+import { clearDeviceKey, clearToken, getDeviceKey, getToken, setToken } from "@/auth";
 import { ROUTES } from "@/routes/paths";
 
 /**
@@ -71,10 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (r) => r,
       (error) => {
         const status = error?.response?.status;
-        const hadAuth = Boolean(error?.config?.headers?.Authorization);
-        if (status === 401 && hadAuth) {
-          clearToken();
-          setAccount(null);
+        const sent = String(error?.config?.headers?.Authorization ?? "");
+        if (status === 401 && sent) {
+          // Drop only the credential that was rejected: an expired admin login
+          // must not unpair the device, and vice versa.
+          const token = getToken();
+          const deviceKey = getDeviceKey();
+          if (token && sent === `Bearer ${token}`) {
+            clearToken();
+            setAccount(null);
+          } else if (deviceKey && sent === `Bearer ${deviceKey}`) {
+            clearDeviceKey();
+          }
         }
         // Logins are required and this device has no credential: send it to
         // pairing (which links to sign-in). Admin-only 401s carry no header.

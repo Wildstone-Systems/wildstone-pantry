@@ -4,20 +4,18 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/client";
 import { getApiErrorMessage } from "@/api/errors";
-import { setToken } from "@/auth";
+import { setDeviceKey } from "@/auth";
 import { ROUTES } from "@/routes/paths";
-import { useAuth } from "@/state/AuthProvider";
 
 type PairResponse = { device_key: string };
 
 /**
  * Pair this browser (e.g. a wall-mounted kitchen tablet) with a one-time code
- * from Admin → Devices. The returned device key is stored like a login token,
- * so the tablet stays signed in until an admin revokes it.
+ * from Admin → Devices. The device key is kept separately from any admin login,
+ * so the tablet stays paired until an admin revokes it.
  */
 export function PairDevicePage() {
   const navigate = useNavigate();
-  const { refreshSession } = useAuth();
   const [code, setCode] = useState("");
   const [deviceName, setDeviceName] = useState("Kitchen tablet");
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +30,9 @@ export function PairDevicePage() {
         code: code.trim(),
         device_name: deviceName.trim() || "Browser",
       });
-      setToken(res.data.device_key);
-      await refreshSession();
+      // Stored as the device's credential, not as an admin session: the
+      // admin area still asks a person to sign in.
+      setDeviceKey(res.data.device_key);
       navigate(ROUTES.dashboard, { replace: true });
     } catch (err) {
       setError(getApiErrorMessage(err, "That code did not work. Ask an admin for a new one."));
