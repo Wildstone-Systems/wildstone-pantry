@@ -66,7 +66,10 @@ HEALTH_URL="${QA_API_BASE_URL%/}/health"
 echo "[qa] Ensuring dev API is reachable for feedback triage: $HEALTH_URL"
 if ! api_up "$HEALTH_URL"; then
   echo "[qa] API not reachable; starting dev stack via docker compose..."
-  (cd "$ROOT_DIR" && compose_cmd up --build -d)
+  # A throwaway stack started just for triage runs without logins (the dev
+  # compose now defaults to AUTH_ENABLED=true). Against an already-running
+  # stack with auth on, set PANTRY_AUTH_TOKEN for check_feedback.py.
+  (cd "$ROOT_DIR" && AUTH_ENABLED="${QA_AUTH_ENABLED:-false}" compose_cmd up --build -d)
   wait_for_api "$HEALTH_URL" 40
 fi
 

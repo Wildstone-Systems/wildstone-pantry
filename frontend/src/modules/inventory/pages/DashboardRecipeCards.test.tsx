@@ -1,10 +1,16 @@
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "@/test-utils";
 
 vi.mock("@/api/client", () => ({
-  api: { post: vi.fn().mockResolvedValue({ data: {} }), get: vi.fn().mockResolvedValue({ data: {} }) },
+  api: {
+    post: vi.fn().mockResolvedValue({ data: {} }),
+    // Recipe photos load through the signed-in client as blobs.
+    get: vi.fn((url: string) =>
+      Promise.resolve({ data: url.endsWith("/image") ? new Blob(["img"], { type: "image/jpeg" }) : {} }),
+    ),
+  },
 }));
 
 const empty = { data: [], isLoading: false, isFetching: false, refetch: () => {} };
@@ -45,8 +51,10 @@ describe("Dashboard 'Cook tonight' cards", () => {
     const { DashboardPage } = await import("./DashboardPage");
     renderWithProviders(<DashboardPage />, { initialEntries: ["/"] });
 
+    URL.createObjectURL = vi.fn(() => "blob:r-photo");
+    URL.revokeObjectURL = vi.fn();
     const card = await screen.findByRole("link", { name: /open recipe: shakshuka/i });
-    expect(card.querySelector("img")).toHaveAttribute("src", "/api/recipes/r-photo/image");
+    await waitFor(() => expect(card.querySelector("img")).toHaveAttribute("src", "blob:r-photo"));
 
     const bare = screen.getByRole("link", { name: /open recipe: plain rice/i });
     expect(bare.querySelector("img")).toBeNull();

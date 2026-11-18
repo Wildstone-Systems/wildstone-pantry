@@ -27,7 +27,7 @@ services:
       # ENVIRONMENT=production, crash-looping the container with an error that
       # never mentions the knob. (The first-run wizard's DB-side override is
       # the easier path and is unaffected either way.)
-      AUTH_ENABLED: "${AUTH_ENABLED:-false}"
+      AUTH_ENABLED: "${AUTH_ENABLED:-true}"
       AUTH_PERSONAL_EMAIL: "${AUTH_PERSONAL_EMAIL:-admin@pantryos.local}"
       AUTH_PERSONAL_PASSWORD: "${AUTH_PERSONAL_PASSWORD:-}"
       CONFIG_SECRET_KEY: "${CONFIG_SECRET_KEY:?set CONFIG_SECRET_KEY (Fernet key)}"

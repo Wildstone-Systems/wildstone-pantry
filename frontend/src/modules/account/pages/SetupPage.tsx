@@ -39,10 +39,15 @@ export function SetupPage() {
 
   const [householdName, setHouseholdName] = useState("");
   const [lanAck, setLanAck] = useState(false);
-  const [mode, setMode] = useState<"open" | "accounts" | null>(null);
+  const [chosenMode, setMode] = useState<"open" | "accounts" | null>(null);
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [seeded, setSeeded] = useState<string | null>(null);
+
+  // The deployment already requires logins (AUTH_ENABLED=true): open mode is
+  // not on offer, only creating the first admin.
+  const loginsRequired = Boolean(status?.accounts_mode);
+  const mode = loginsRequired ? "accounts" : chosenMode;
 
   // A lived-in instance never sees the wizard, even by URL.
   if (status?.completed) {
@@ -156,14 +161,20 @@ export function SetupPage() {
 
           <Stepper.Step label="Who uses this?">
             <Stack mt="md">
-              <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              {loginsRequired && (
+                <Alert color="blue" variant="light">
+                  This installation requires a sign-in for every device. Create the first admin
+                  account now; pair kitchen tablets afterwards from Admin → Devices.
+                </Alert>
+              )}
+              <SimpleGrid cols={{ base: 1, sm: 2 }} hidden={loginsRequired}>
                 <Card
                   withBorder
                   padding="lg"
                   onClick={() => setMode("open")}
                   style={{ cursor: "pointer", borderColor: mode === "open" ? "var(--mantine-color-blue-5)" : undefined }}
                 >
-                  <Title order={5}>Open household (recommended)</Title>
+                  <Title order={5}>Open household</Title>
                   <Text size="sm" c="dimmed" mt={4}>
                     No logins for everyday use — walk up and go, on any device in the house. The admin
                     area still requires a password.
@@ -178,7 +189,7 @@ export function SetupPage() {
                     borderColor: mode === "accounts" ? "var(--mantine-color-blue-5)" : undefined,
                   }}
                 >
-                  <Title order={5}>Household accounts</Title>
+                  <Title order={5}>Household accounts (recommended)</Title>
                   <Text size="sm" c="dimmed" mt={4}>
                     Protected surfaces require a sign-in. Create the first admin account now; add
                     family members later.

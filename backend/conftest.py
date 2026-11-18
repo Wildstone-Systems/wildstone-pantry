@@ -77,6 +77,20 @@ def reset_database():
 
 
 @pytest.fixture(autouse=True)
+def _open_mode_by_default(monkeypatch):
+    """Tests run in open mode (AUTH_ENABLED=false) unless they opt in.
+
+    Production now ships with auth on; most tests exercise features, not
+    auth, so they call kiosk routes without credentials. Auth tests switch it
+    on with ``monkeypatch.setattr(settings, "auth_enabled", True)``.
+    """
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "auth_enabled", False)
+    yield
+
+
+@pytest.fixture(autouse=True)
 def _patch_httpx(monkeypatch):
     """Route module-level httpx calls through the in-process app."""
     for method in ("get", "post", "put", "delete", "patch", "request"):

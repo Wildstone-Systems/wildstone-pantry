@@ -59,13 +59,19 @@ def create_agent_key(db: Session, *, user: User, name: str, scopes: str = "read,
     return row, secret
 
 
-def list_agent_keys(db: Session) -> list[AgentKey]:
-    return list(db.execute(select(AgentKey).order_by(AgentKey.created_at.desc())).scalars().all())
+def list_agent_keys(db: Session, *, user: User) -> list[AgentKey]:
+    """Admins see every key; anyone else sees only their own."""
+    query = select(AgentKey).order_by(AgentKey.created_at.desc())
+    if user.role != "admin":
+        query = query.where(AgentKey.user_id == user.id)
+    return list(db.execute(query).scalars().all())
 
 
-def revoke_agent_key(db: Session, key_id: UUID) -> AgentKey:
+def revoke_agent_key(db: Session, key_id: UUID, *, user: User | None = None) -> AgentKey:
+    """Revoke a key. ``user=None`` is a system rotation (e.g. re-pairing)."""
     row = db.get(AgentKey, key_id)
-    if row is None:
+    # Someone else's key reads as "not found" to a non-admin: no probing.
+    if row is None or (user is not None and user.role != "admin" and row.user_id != user.id):
         raise LookupError("Agent key not found")
     row.revoked = True
     db.commit()

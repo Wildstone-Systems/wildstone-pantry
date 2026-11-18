@@ -109,6 +109,17 @@ async def allow_kiosk(
     if x_agent_key or authorization:
         return await require_user(request, authorization, x_agent_key, db)
 
+    # With auth on, the kiosk is no longer an open door: a wall tablet pairs
+    # once and presents its device key like any other device (ADR 0004 update).
+    if auth_enabled_effective(db):
+        # The header tells the web app "send this device to sign-in/pairing",
+        # as opposed to an admin-only 401 the kiosk should simply ignore.
+        raise HTTPException(
+            status_code=401,
+            detail="Missing credentials: log in or pair this device",
+            headers={"X-PantryOS-Auth": "required"},
+        )
+
     return get_or_create_personal_user(
         db,
         email=settings.auth_personal_email,
@@ -135,6 +146,28 @@ async def deny_agent_keys(x_agent_key: str | None = Header(default=None, alias="
             status_code=403,
             detail="This action must be performed by a person, not an agent key.",
         )
+
+
+async def require_login(
+    authorization: str | None = Header(default=None),
+    x_agent_key: str | None = Header(default=None, alias="X-Agent-Key"),
+    db: Session = Depends(get_db),
+):
+    """A real human login session, whatever the auth toggle says.
+
+    For managing credentials themselves (agent keys): an agent or device key
+    must never mint or revoke keys, and the open personal/kiosk identity must
+    never be a path to one — otherwise a single leaked key could outlive its
+    own revocation by minting successors.
+    """
+    if x_agent_key or (authorization and authorization.lower().startswith("bearer dk_")):
+        raise HTTPException(status_code=403, detail="Keys cannot manage keys; log in as a person")
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Login required")
+    user = get_user_from_token(db, authorization.split(" ", 1)[1].strip())
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return user
 
 
 async def require_admin(user=Depends(require_user)):

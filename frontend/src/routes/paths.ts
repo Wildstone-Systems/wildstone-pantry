@@ -1,5 +1,6 @@
 export const ROUTES = {
   setup: "/setup",
+  pair: "/pair",
   dashboard: "/",
   inventory: "/inventory",
   catalog: "/catalog",

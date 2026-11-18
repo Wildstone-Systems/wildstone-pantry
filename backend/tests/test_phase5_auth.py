@@ -8,7 +8,10 @@ import httpx
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 
-def test_phase5_auth_flow() -> None:
+def test_phase5_auth_flow(monkeypatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "auth_enabled", True)
     email = os.getenv("TEST_ADMIN_EMAIL", "admin@pantryos.local")
     password = os.getenv("TEST_ADMIN_PASSWORD", "TestPass123!")
 
