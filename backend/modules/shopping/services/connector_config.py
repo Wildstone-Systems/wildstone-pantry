@@ -28,8 +28,7 @@ class Field:
     env_default: str = ""
 
 
-# Field specs per connector key. IMAP is the only one wired to in-app config for
-# now; add a connector here to make it admin-configurable.
+# Field specs per connector key; add a connector here to make it admin-configurable.
 _SPECS: dict[str, list[Field]] = {
     "classifier": [
         Field("enabled"),
@@ -39,13 +38,6 @@ _SPECS: dict[str, list[Field]] = {
         Field("endpoint"),
         Field("cloud_opt_in"),
         Field("api_key", secret=True),
-    ],
-    "imap": [
-        Field("host"),
-        Field("port"),
-        Field("username"),
-        Field("password", secret=True),
-        Field("mailbox"),
     ],
     # Outbound inventory-event webhook for Home Assistant (ADR 0011). The URL is
     # not secret (it's visible in HA anyway); the HMAC signing secret is.
@@ -80,15 +72,9 @@ _SPECS: dict[str, list[Field]] = {
         Field("api_key", secret=True),
         Field("base_url"),
     ],
-    # Local AI providers (ADR 0018 §9): free, no entitlement, dormant until
-    # configured. Local always wins over cloud AI (Q47-2).
+    # Local Ollama server used by the catalog food judge (nutrition matching).
     "ollama": [
         Field("base_url"),
-        Field("model"),
-    ],
-    "openai_compat": [
-        Field("base_url"),
-        Field("api_key", secret=True),
         Field("model"),
     ],
     # Native OIDC SSO (ADR 0020): DB-only, admin-configured. Defaults for blank
@@ -114,14 +100,6 @@ _SPECS: dict[str, list[Field]] = {
 
 
 def _env_seed(key: str) -> dict[str, str]:
-    if key == "imap":
-        return {
-            "host": settings.imap_host,
-            "port": str(settings.imap_port),
-            "username": settings.imap_username,
-            "password": settings.imap_password,
-            "mailbox": settings.imap_mailbox or "INBOX",
-        }
     if key == "home_assistant":
         return {
             "webhook_url": settings.ha_webhook_url,

@@ -52,7 +52,7 @@ def ingest_product_url(
     """Add a product from a web link. Extracts the product, upserts a catalog
     item, and adds it to the shopping list and/or inventory. Pass location_id to
     put it straight into inventory; otherwise it lands on the shopping list to buy
-    later (and is checked off automatically when you log the purchase/receipt)."""
+    later (mark it purchased with `mark_shopping_item` once bought)."""
     return _client().ingest_product_url(
         url=url,
         add_to_shopping=add_to_shopping,
@@ -108,6 +108,19 @@ def add_inventory(
         expiration_date=expiration_date,
         container_id=container_id,
     )
+
+
+@mcp.tool()
+def resolve_items(lines: list[dict], create_missing: bool = False) -> Any:
+    """Map product lines (e.g. read from a receipt or order email) to catalog items.
+
+    `lines` is a list of {"name": str, "barcode"?: str, "brand"?: str}, up to 100.
+    Each result has match = barcode | existing | created | not_found, plus
+    item_id and suggested_expiry_days. Default is a DRY RUN (nothing written):
+    show the user what would be created, then call again with
+    create_missing=True. This never changes stock — follow up with
+    add_inventory for each line."""
+    return _client().resolve_items(lines=lines, create_missing=create_missing)
 
 
 @mcp.tool()
@@ -587,7 +600,7 @@ def restock_suggestions(location_id: str) -> Any:
 
 @mcp.tool()
 def list_purchases() -> Any:
-    """List recorded purchases (receipts/CSV imports), newest first."""
+    """List recorded purchases (completed store hand-offs), newest first."""
     return _client().list_purchases()
 
 

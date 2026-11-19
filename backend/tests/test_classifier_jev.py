@@ -121,7 +121,6 @@ def test_native_endpoint_key_usage_no_truth_writes(client, admin, transport):
             if t.name != "classifier_evaluations"
         }
     assert before == after
-    assert client.get("/api/ai/status", headers=admin).json()["active_vision_provider"] is None
 
 
 def test_switch_isolates_keys_and_consent_both_directions(client, admin, transport):

@@ -218,8 +218,7 @@ def _cart_error_reason(resp: "httpx.Response") -> str:
 def add_to_cart_via(items: list[CartItem], *, get_token) -> list[dict]:
     """PUT the items into the user's Kroger cart using ``get_token(force)``.
 
-    Token acquisition is injected so the same cart logic serves both the local
-    BYO-credential path and the brokered path (ADR 0018 §3). Refreshes the
+    Token acquisition is injected so the cart logic stays testable. Refreshes the
     token once (``get_token(force=True)``) on a 401.
 
     Kroger's cart-add is all-or-nothing, so a single un-orderable UPC would

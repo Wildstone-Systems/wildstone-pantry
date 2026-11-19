@@ -79,18 +79,6 @@ jobs:
           DATABASE_URL: postgresql+psycopg://pantryos_ci:pantryos_ci@localhost:5432/pantryos
         run: python scripts/check_ranked_identity_postgres.py --confirm-ci-database
 
-      - name: Receipt review PostgreSQL replay, concurrency and rollback
-        timeout-minutes: 5
-        env:
-          DATABASE_URL: postgresql+psycopg://pantryos_ci:pantryos_ci@localhost:5432/pantryos
-        run: python scripts/check_receipt_review_postgres.py --confirm-ci-database
-
-      - name: Purchase CSV PostgreSQL source claims, races and rollback
-        timeout-minutes: 5
-        env:
-          DATABASE_URL: postgresql+psycopg://pantryos_ci:pantryos_ci@localhost:5432/pantryos
-        run: python scripts/check_purchase_review_postgres.py --confirm-ci-database
-
       - name: Scoped substitutions PostgreSQL approvals and cook retries
         timeout-minutes: 5
         env:

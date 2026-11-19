@@ -1,4 +1,4 @@
-/** Platform/cross-cutting response types (health, entitlement). */
+/** Platform/cross-cutting response types (health, auth, household). */
 
 export type HealthResponse = {
   status: string;

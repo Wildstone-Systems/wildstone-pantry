@@ -40,19 +40,9 @@ from modules.planning.services.recipes import (
     suggest_recipes,
 )
 from modules.shopping.services.purchases import (
-    compute_purchase_fingerprint,
     get_purchase,
-    import_purchase_csv_text,
     list_purchase_lines,
     list_purchases,
-    parse_purchase_csv,
-    preview_purchase_csv_text,
-)
-from modules.shopping.services.receipts import (
-    commit_receipt_lines,
-    ingest_receipt_text,
-    preview_receipt_image,
-    preview_receipt_text,
 )
 
 __all__ = [
@@ -80,12 +70,6 @@ __all__ = [
     "get_recipe_with_ingredients",
     "get_user",
     "get_user_from_token",
-    "ingest_receipt_text",
-    "preview_receipt_image",
-    "preview_receipt_text",
-    "commit_receipt_lines",
-    "import_purchase_csv_text",
-    "compute_purchase_fingerprint",
     "get_purchase",
     "list_expiring_items",
     "list_feedback",
@@ -105,10 +89,8 @@ __all__ = [
     "scan_move",
     "set_recipe_ingredients",
     "suggest_recipes",
-    "parse_purchase_csv",
     "list_purchase_lines",
     "list_purchases",
-    "preview_purchase_csv_text",
     "update_item",
     "update_location",
     "update_feedback_status",

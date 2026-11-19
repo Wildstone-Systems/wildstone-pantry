@@ -50,7 +50,6 @@ def content_fingerprint():
         root / "classifier_contract.py",
         root / "classifier_service.py",
         root / "food_judge.py",
-        root / "receipt_parser.py",
         root / "recipe_import_parser.py",
         root.parent / "catalog" / "services" / "canonical.py",
         root.parent / "catalog" / "services" / "units.py",
@@ -638,14 +637,6 @@ def _baseline(case):
 
         left, right = map(canonical_ingredient, (evidence["subject"], evidence["candidate_or_context"]))
         return ("same", "canonical_key_equal") if left and left == right else (None, "canonical_no_exact_match")
-    if task == "receipt_role":
-        from modules.automation.receipt_parser import parse_receipt_text
-
-        return (
-            ("stock", "parser_stock_candidate")
-            if parse_receipt_text(evidence["subject"])
-            else (None, "parser_no_stock_candidate")
-        )
     if task == "recipe_plausibility":
         from modules.automation.recipe_import_parser import parse_recipe_text
 

@@ -163,51 +163,6 @@ export type BarcodeLookupApiResponse = {
   source: string | null;
 };
 
-export type ReceiptLine = {
-  line_item_id: string;
-  raw_line: string;
-  parsed_name: string | null;
-  parsed_quantity: string | number;
-  parsed_unit: string;
-  matched_item_id: string | null;
-  matched_item_name: string | null;
-};
-
-export type ReceiptIngestApiResponse = {
-  receipt_id: string;
-  status: string;
-  line_count: number;
-  inventory_transaction_ids: string[];
-  lines: ReceiptLine[];
-  created_at: string;
-};
-
-export type ReceiptPreviewLine = {
-  raw_line: string;
-  name: string;
-  quantity: string;
-  unit: string;
-  matched_item_id: string | null;
-  matched_item_name: string | null;
-  expiration_days_estimate: number | null;
-};
-
-export type ReceiptPreviewApiResponse = {
-  lines: ReceiptPreviewLine[];
-  line_count: number;
-};
-
-export type ReceiptCommitLine = {
-  raw_line: string;
-  name: string;
-  quantity: string;
-  unit: string;
-  matched_item_id: string | null;
-  create_new: boolean;
-};
-
-export type ReceiptCommitApiResponse = ReceiptIngestApiResponse;
-
 export type PurchaseLine = {
   line_item_id: string;
   raw_line: string;
@@ -217,29 +172,6 @@ export type PurchaseLine = {
   parsed_barcode: string | null;
   matched_item_id: string | null;
   matched_item_name: string | null;
-};
-
-export type PurchaseImportApiResponse = {
-  purchase_id: string;
-  status: string;
-  line_count: number;
-  created_item_ids: string[];
-  inventory_transaction_ids: string[];
-  lines: PurchaseLine[];
-  created_at: string;
-};
-
-export type PurchaseDisplayedLine = PurchaseLine & {
-  would_create_item?: boolean;
-  would_add_to_inventory?: boolean;
-};
-
-export type PurchasePreviewApiResponse = {
-  fingerprint: string;
-  duplicate_of_purchase_id: string | null;
-  line_count: number;
-  would_create_item_names: string[];
-  lines: PurchaseDisplayedLine[];
 };
 
 export type PurchaseRead = {

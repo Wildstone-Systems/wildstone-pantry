@@ -66,18 +66,17 @@ class LinkRetailerAdapter:
 
 class KrogerAdapter(LinkRetailerAdapter):
     """Kroger: the one retailer with an indie-accessible cart API. Search and
-    cart light up with BYO credentials OR a brokered connection (ADR 0018 §3) —
-    both declare identical capabilities; credential mode is orthogonal."""
+    cart light up once the household's own Kroger credentials are set."""
 
     def capabilities(self) -> set[str]:
         return super().capabilities() | {CAP_PRODUCT_SEARCH, CAP_CART_ADD}
 
     def available(self, db: Session) -> set[str]:
         caps = super().available(db)
-        from app.services import broker_connections, provider_keys
+        from app.services import provider_keys
 
         client_id, client_secret = provider_keys.kroger_credentials(db)
-        if (client_id and client_secret) or broker_connections.get_connection(db, "kroger") is not None:
+        if client_id and client_secret:
             caps |= {CAP_PRODUCT_SEARCH, CAP_CART_ADD}
         return caps
 

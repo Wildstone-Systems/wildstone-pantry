@@ -34,7 +34,6 @@ import {
 } from "../hooks/shopping-list-hooks";
 import { HandoffStartCard } from "../components/HandoffStartCard";
 import { MatchOfferModal } from "../components/MatchOfferModal";
-import { PurchaseIntakeCard } from "./PurchaseIntakeCard";
 
 const PROVIDER_LABEL: Record<string, string> = {
   kroger: "Kroger",
@@ -431,8 +430,6 @@ export function ShoppingListPage() {
           </Button>
         </Group>
       </Card>
-
-      <PurchaseIntakeCard />
 
       {purchased.length > 0 ? (
         <Card withBorder padding="md">

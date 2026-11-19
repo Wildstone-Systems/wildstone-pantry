@@ -5,7 +5,6 @@ import { AccessCard } from "@/components/AccessCard";
 import { ROUTES } from "@/routes/paths";
 import { useAuth } from "@/state/AuthProvider";
 
-import { ConnectCard } from "../components/ConnectCard";
 import { DevicesCard } from "../components/DevicesCard";
 import { SystemCard } from "../components/SystemCard";
 
@@ -38,7 +37,7 @@ export function AdminHome() {
         <Card withBorder padding="lg" component={Link} to={ROUTES.adminIntegrations}>
           <Title order={4}>Integrations</Title>
           <Text c="dimmed" size="sm">
-            Connect vendor services (email receipts) to feed inventory.
+            Connect stores, lookups, SSO and other services.
           </Text>
         </Card>
         <Card withBorder padding="lg" component={Link} to={ROUTES.adminAgentKeys}>
@@ -47,13 +46,11 @@ export function AdminHome() {
             Mint long-lived keys so an agent can act on PantryOS on your behalf.
           </Text>
         </Card>
-        {/* Connected-services settings will live here (ADR 0018). */}
       </SimpleGrid>
 
       <AccessCard />
       <DevicesCard />
       <SystemCard />
-      <ConnectCard />
     </Stack>
   );
 }

@@ -231,6 +231,12 @@ _TASKS: list[dict] = [
         "path": "/api/agent/ingest-product-url",
         "body": {"url": "https://...", "add_to_shopping": True},
     },
+    {
+        "task": "Map product names/barcodes (receipt or order lines) to catalog item ids (dry run unless create_missing)",
+        "method": "POST",
+        "path": "/api/agent/resolve-items",
+        "body": {"lines": [{"name": "Whole milk", "barcode": None}], "create_missing": False},
+    },
 ]
 
 _WORKFLOWS: list[dict] = [
@@ -244,6 +250,17 @@ _WORKFLOWS: list[dict] = [
             "For each missing ingredient: note its item_id from the recipe; GET /api/shopping-list/search?q=<name>&provider=kroger; POST /api/shopping-list/from-offer with the offer, your scaled quantity, AND item_id=<that ingredient's item_id> so the recipe's item is enriched (not duplicated).",
         ],
         "notes": "Passing item_id is what keeps this from creating duplicate catalog items — the recipe's ingredient item gets the Kroger UPC/brand, and the list entry links to it.",
+    },
+    {
+        "goal": "Add groceries from a receipt or order email to inventory",
+        "steps": [
+            "Read the receipt/email yourself and list each product: name, quantity, unit, barcode if printed.",
+            "POST /api/agent/resolve-items with all lines and create_missing=false — a dry run; show the user which lines would create new items.",
+            "After the user confirms, POST /api/agent/resolve-items again with create_missing=true to get an item_id for every line.",
+            "For each line: POST /api/inventory/add with item_id, location_id, quantity, unit and expiration_date (today + suggested_expiry_days unless the package says otherwise).",
+            "Optionally PATCH matching shopping-list entries to status=purchased.",
+        ],
+        "notes": "resolve-items never changes stock, so a failed or repeated run is safe; only /api/inventory/add writes the ledger.",
     },
 ]
 

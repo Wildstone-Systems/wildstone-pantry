@@ -3,12 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { api } from "@/api/client";
-import { FEATURE } from "@/api/entitlement";
 import { getApiErrorMessage } from "@/api/errors";
-import { FeatureGate } from "@/components/FeatureGate";
 
-import { BrokeredKrogerCard } from "../components/BrokeredKrogerCard";
-import { CloudAiCard } from "../components/CloudAiCard";
 import { ClassifierCard } from "../components/ClassifierCard";
 import { ClassifierEvaluationPanel } from "../components/ClassifierEvaluationPanel";
 import { CollapsibleCard } from "../components/CollapsibleCard";
@@ -22,125 +18,6 @@ import {
   useTestConnectorConfig,
   useWebhookDeliveries,
 } from "../hooks/integrations-hooks";
-
-function ImapCard() {
-  const config = useConnectorConfig("imap");
-  const save = useSaveConnectorConfig("imap");
-  const clear = useClearConnectorConfig("imap");
-  const test = useTestConnectorConfig("imap");
-
-  const [host, setHost] = useState("");
-  const [port, setPort] = useState("993");
-  const [username, setUsername] = useState("");
-  const [mailbox, setMailbox] = useState("INBOX");
-  const [password, setPassword] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const view = config.data;
-  const passwordSet = view?.secret_set?.password ?? false;
-
-  // Seed the non-secret fields from the server view once loaded.
-  useEffect(() => {
-    if (!view) return;
-    setHost(view.values.host ?? "");
-    setPort(view.values.port ?? "993");
-    setUsername(view.values.username ?? "");
-    setMailbox(view.values.mailbox ?? "INBOX");
-  }, [view]);
-
-  const onSave = () => {
-    setMsg(null);
-    const updates: Record<string, string> = { host, port, username, mailbox };
-    if (password) updates.password = password; // omit when blank → keep existing
-    save.mutate(updates, {
-      onSuccess: () => {
-        setPassword("");
-        setMsg("Saved.");
-      },
-      onError: (err) => setMsg(getApiErrorMessage(err, "Save failed")),
-    });
-  };
-
-  const onTest = () => {
-    setMsg(null);
-    test.mutate(undefined, {
-      onSuccess: (r) => setMsg(r.ok ? `✓ ${r.detail}` : `✗ ${r.detail}`),
-      onError: (err) => setMsg(getApiErrorMessage(err, "Test failed")),
-    });
-  };
-
-  const onClear = () => {
-    setMsg(null);
-    clear.mutate(undefined, {
-      onSuccess: () => {
-        setPassword("");
-        setMsg("Disconnected — reverted to environment config.");
-      },
-      onError: (err) => setMsg(getApiErrorMessage(err, "Disconnect failed")),
-    });
-  };
-
-  const configured = host.trim() && username.trim() && passwordSet;
-
-  return (
-    <CollapsibleCard
-      id="imap"
-      title="Email receipts (IMAP)"
-      status={
-        <Badge color={configured ? "green" : "gray"} variant={configured ? "filled" : "light"}>
-          {configured ? "connected" : "not configured"}
-        </Badge>
-      }
-    >
-      <Text c="dimmed" size="sm">
-        Pull order-confirmation emails from a mailbox to seed inventory. Use a dedicated{" "}
-        <strong>app password</strong>, not your main account password.
-      </Text>
-
-      {view && !view.secrets_available ? (
-        <Alert color="orange">
-          Secret storage is disabled: set <code>CONFIG_SECRET_KEY</code> in the server environment to save
-          credentials in-app.
-        </Alert>
-      ) : null}
-      {view?.from_env_only && (view.values.host || view.secret_set.password) ? (
-        <Alert color="blue">Currently using environment config. Saving here stores an in-app override.</Alert>
-      ) : null}
-
-      <Group grow>
-        <TextInput label="IMAP host" placeholder="imap.gmail.com" value={host} onChange={(e) => setHost(e.currentTarget.value)} />
-        <TextInput label="Port" value={port} onChange={(e) => setPort(e.currentTarget.value)} w={120} />
-      </Group>
-      <TextInput
-        label="Username"
-        placeholder="family@example.com"
-        value={username}
-        onChange={(e) => setUsername(e.currentTarget.value)}
-      />
-      <PasswordInput
-        label="App password"
-        placeholder={passwordSet ? "•••••••• (leave blank to keep)" : "Enter app password"}
-        value={password}
-        onChange={(e) => setPassword(e.currentTarget.value)}
-      />
-      <TextInput label="Mailbox" value={mailbox} onChange={(e) => setMailbox(e.currentTarget.value)} />
-
-      {msg ? <Alert color="blue">{msg}</Alert> : null}
-
-      <Group>
-        <Button onClick={onSave} loading={save.isPending} disabled={!!view && !view.secrets_available}>
-          Save
-        </Button>
-        <Button variant="light" onClick={onTest} loading={test.isPending} disabled={!configured}>
-          Test connection
-        </Button>
-        <Button variant="subtle" color="red" onClick={onClear} loading={clear.isPending} disabled={!view?.has_override}>
-          Disconnect
-        </Button>
-      </Group>
-    </CollapsibleCard>
-  );
-}
 
 function HomeAssistantCard() {
   const config = useConnectorConfig("home_assistant");
@@ -677,73 +554,30 @@ export function IntegrationsPage() {
       <Title order={3} mt="md">
         Other services
       </Title>
-      <ImapCard />
       <HomeAssistantCard />
       <WildstoneCard />
 
       <Title order={3} mt="md">
-        AI (optional)
+        Local AI (optional)
       </Title>
       <Text size="sm" c="dimmed">
-        Smarter receipt reading. Local providers keep everything on your hardware and always win over
-        cloud AI (ADR 0018).
+        Lets the catalog double-check that a nutrition match is really the same food. Runs on your own hardware.
       </Text>
       <ProviderKeyCard
         connector="ollama"
         title="Ollama (local)"
-        description="A local model server on your network. Use a vision-capable model (e.g. llava, qwen-vl) for receipt photos."
+        description="A local model server on your network (e.g. llama3, qwen2.5)."
         fields={[
           { name: "base_url", label: "Base URL", placeholder: "http://localhost:11434" },
-          { name: "model", label: "Model", placeholder: "llava" },
+          { name: "model", label: "Model", placeholder: "llama3.1" },
         ]}
       />
-      <ProviderKeyCard
-        connector="openai_compat"
-        title="OpenAI-compatible API"
-        description="Any OpenAI-style endpoint — OpenAI, OpenRouter, LM Studio, llama.cpp server — with your own key."
-        fields={[
-          { name: "base_url", label: "Base URL", placeholder: "https://api.openai.com" },
-          { name: "api_key", label: "API key", secret: true },
-          { name: "model", label: "Model", placeholder: "gpt-4o-mini" },
-        ]}
-      />
-      <CloudAiCard />
 
       <Title order={3} mt="md">
         Classifier (optional)
       </Title>
       <ClassifierCard />
       <ClassifierEvaluationPanel />
-
-      <Title order={3} mt="md">
-        Connected services
-      </Title>
-      <Text size="sm" c="dimmed">
-        Optional hosted extras (ADR 0018): store connections without registering your own developer keys, and
-        cloud AI. Everything above works without them.
-      </Text>
-      <FeatureGate
-        feature={FEATURE.storeIntegrations}
-        fallback={
-          <CollapsibleCard
-            id="brokered_store_connections"
-            title="Brokered store connections"
-            status={
-              <Badge variant="light" color="grape">
-                PantryOS Connect
-              </Badge>
-            }
-          >
-            <Text size="sm" c="dimmed">
-              With an activation key, connect Kroger (and future retailers) with one click — no developer
-              account, no keys to paste. This instance is running in free mode; bring-your-own keys above stay
-              free forever.
-            </Text>
-          </CollapsibleCard>
-        }
-      >
-        <BrokeredKrogerCard />
-      </FeatureGate>
     </Stack>
   );
 }

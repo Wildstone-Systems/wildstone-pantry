@@ -423,6 +423,9 @@ class PantryOSClient:
             },
         )
 
+    def resolve_items(self, *, lines: list[dict], create_missing: bool = False) -> Any:
+        return self._post("/api/agent/resolve-items", {"lines": lines, "create_missing": create_missing})
+
     def ingest_product_url(
         self,
         *,

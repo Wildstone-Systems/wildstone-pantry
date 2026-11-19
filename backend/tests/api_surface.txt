@@ -1,4 +1,3 @@
-DELETE /api/activation
 DELETE /api/admin/integrations/{key}
 DELETE /api/agent-keys/{key_id}
 DELETE /api/ai/classifier/benchmark/runs/{run_id}
@@ -22,7 +21,6 @@ DELETE /api/recipes/{recipe_id}/nutrition-override
 DELETE /api/shopping-list/{entry_id}
 DELETE /api/substitution-reviews/{review_id}
 DELETE /api/substitutions/{substitution_id}
-GET /api/activation
 GET /api/admin/integrations/kroger/locations
 GET /api/admin/integrations/{key}
 GET /api/admin/integrations/{key}/deliveries
@@ -35,7 +33,6 @@ GET /api/ai/classifier/benchmark/runs
 GET /api/ai/classifier/benchmark/runs/{run_id}
 GET /api/ai/classifier/config
 GET /api/ai/classifier/evaluations/{result_id}
-GET /api/ai/status
 GET /api/auth/me
 GET /api/auth/oidc/callback
 GET /api/auth/oidc/login
@@ -52,7 +49,6 @@ GET /api/cook-sessions/{session_id}/substitution-reviews
 GET /api/cook-timers
 GET /api/devices
 GET /api/docs
-GET /api/entitlement
 GET /api/feedback
 GET /api/household/profiles
 GET /api/ingredient-match-reviews/{review_id}
@@ -63,8 +59,6 @@ GET /api/insights/restock
 GET /api/insights/restock/{location_id}
 GET /api/insights/trends
 GET /api/insights/trends/{location_id}
-GET /api/integrations/kroger/broker/callback
-GET /api/integrations/kroger/broker/status
 GET /api/integrations/kroger/oauth/callback
 GET /api/integrations/kroger/oauth/status
 GET /api/integrations/wildstone/connection
@@ -100,10 +94,7 @@ GET /api/meal-plan/nutrition
 GET /api/meal-plan/shopping-gap
 GET /api/openapi.json
 GET /api/purchases
-GET /api/purchases/connectors
 GET /api/purchases/{purchase_id}
-GET /api/receipts/email/discover
-GET /api/receipts/email/preview/{message_id}
 GET /api/recipes
 GET /api/recipes/ad-hoc
 GET /api/recipes/ingredient-matches
@@ -139,10 +130,10 @@ PATCH /api/household/profiles/{profile_id}
 PATCH /api/meal-plan/entries/{entry_id}
 PATCH /api/shopping-list/handoff/{session_id}/items/{item_id}
 PATCH /api/shopping-list/{entry_id}
-POST /api/activation
 POST /api/admin/integrations/{key}/test
 POST /api/agent-keys
 POST /api/agent/ingest-product-url
+POST /api/agent/resolve-items
 POST /api/ai/classifier/benchmark/corpus/diagnostic-freeze
 POST /api/ai/classifier/benchmark/corpus/freeze
 POST /api/ai/classifier/benchmark/corpus/reopen
@@ -154,7 +145,6 @@ POST /api/ai/classifier/benchmark/runs/{run_id}/cancel
 POST /api/ai/classifier/benchmark/runs/{run_id}/step
 POST /api/ai/classifier/evaluations
 POST /api/ai/classifier/test
-POST /api/ai/consent
 POST /api/auth/bootstrap-admin
 POST /api/auth/login
 POST /api/auth/password
@@ -182,8 +172,6 @@ POST /api/ingredient-match-reviews/{review_id}/compare
 POST /api/ingredient-match-reviews/{review_id}/confirm
 POST /api/ingredient-match-reviews/{review_id}/reject
 POST /api/ingredient-reference
-POST /api/integrations/kroger/broker/disconnect
-POST /api/integrations/kroger/broker/start
 POST /api/integrations/kroger/oauth/disconnect
 POST /api/integrations/kroger/oauth/start
 POST /api/integrations/wildstone/connection/test
@@ -222,25 +210,6 @@ POST /api/meal-plan/entries/{entry_id}/reset
 POST /api/meal-plan/entries/{entry_id}/skip
 POST /api/meal-plan/excluded-items
 POST /api/meal-plan/shopping-gap/push
-POST /api/purchases/connectors/{key}/import
-POST /api/purchases/connectors/{key}/preview
-POST /api/purchases/draft-csv
-POST /api/purchases/drafts/{draft_id}/commit
-POST /api/purchases/drafts/{draft_id}/review
-POST /api/purchases/import-csv
-POST /api/purchases/preview-csv
-POST /api/receipts/commit
-POST /api/receipts/draft
-POST /api/receipts/draft-image
-POST /api/receipts/drafts/{draft_id}/commit
-POST /api/receipts/drafts/{draft_id}/review
-POST /api/receipts/email/import
-POST /api/receipts/email/list
-POST /api/receipts/email/preview
-POST /api/receipts/ingest
-POST /api/receipts/ingest-image
-POST /api/receipts/preview
-POST /api/receipts/preview-image
 POST /api/recipes
 POST /api/recipes/ad-hoc
 POST /api/recipes/bulk

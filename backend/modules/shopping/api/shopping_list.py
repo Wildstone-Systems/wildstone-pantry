@@ -132,24 +132,12 @@ def kroger_cart_route(db: Session = Depends(get_db)) -> KrogerCartPushResult:
 
     Requires a Kroger account linked under Integrations. Entries without a Kroger
     UPC are skipped and reported."""
-    from app.services.entitlement import FEATURE_STORE_INTEGRATIONS, check_brokered_feature
-    from app.services.integration_broker import BrokerEntitlementLapsed, BrokerError
     from modules.shopping.services.kroger_cart import KrogerCartError, KrogerNotConnected
 
     try:
         result = service.push_to_kroger_cart(db)
     except KrogerNotConnected as exc:
-        # Not connected locally: if a broker is configured, the brokered path is
-        # the premium feature (ADR 0018 §3) — 402 beats 409 for the upsell.
-        check_brokered_feature(FEATURE_STORE_INTEGRATIONS)
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except BrokerEntitlementLapsed as exc:
-        raise HTTPException(
-            status_code=402,
-            detail={"error": "feature_not_available", "feature": FEATURE_STORE_INTEGRATIONS, "message": str(exc)},
-        ) from exc
-    except BrokerError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except KrogerCartError as exc:
@@ -162,15 +150,12 @@ def instacart_route(db: Session = Depends(get_db)) -> InstacartPushResult:
     """Turn the pending buy list into an Instacart shoppable-list link (ADR 0013
     Phase 4b — multi-retailer ordering). Dormant until an Instacart API key is set;
     409 means not configured."""
-    from app.services.entitlement import FEATURE_STORE_INTEGRATIONS, check_brokered_feature
     from modules.shopping.connectors import NotConfiguredError
     from modules.shopping.connectors.instacart import InstacartError
 
     try:
         result = service.create_instacart_page(db)
     except NotConfiguredError as exc:
-        # Same brokered-branch rule as the Kroger push (ADR 0018 §3).
-        check_brokered_feature(FEATURE_STORE_INTEGRATIONS)
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

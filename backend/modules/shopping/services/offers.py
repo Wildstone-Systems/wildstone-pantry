@@ -90,20 +90,12 @@ class KrogerSearch:
     def search(self, query: str, *, limit: int = 10, db: Session | None = None) -> list[Offer]:
         client_id, client_secret = provider_keys.kroger_credentials(db)
         location_id = provider_keys.kroger_location_id(db)
-        token_override = None
-        if not (client_id and client_secret) and db is not None:
-            # No BYO credentials: a brokered instance searches with a
-            # broker-minted service token (ADR 0018 §3); None degrades quietly.
-            from app.services.broker_connections import service_search_token
-
-            token_override = service_search_token(db)
         rows = search_kroger_offers(
             query,
             limit=limit,
             client_id=client_id,
             client_secret=client_secret,
             location_id=location_id or None,
-            token_override=token_override,
         )
         return [
             Offer(

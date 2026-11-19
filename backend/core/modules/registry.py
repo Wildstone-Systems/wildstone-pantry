@@ -27,7 +27,7 @@ def registered_modules() -> list[ModuleManifest]:
 def mount_modules(app: FastAPI, *, api_prefix: str = "/api") -> None:
     """Mount every registered module's routers onto the app.
 
-    Local features are never gated app-wide (ADR 0018); auth and entitlement
+    Local features are never gated app-wide (ADR 0018); auth
     dependencies live on individual routes.
     """
     for manifest in _REGISTRY.values():

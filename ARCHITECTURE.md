@@ -26,10 +26,10 @@ Domain modules (`backend/modules/`):
 |---|---|
 | `catalog` | Products, barcodes, unit conversions, data quality |
 | `inventory` | Stock by location, lots/containers, waste, transaction log |
-| `shopping` | Shopping list, receipts, purchases, retailer connectors |
+| `shopping` | Shopping list, store hand-off, purchase history, retailer connectors |
 | `planning` | Recipes, ingredient matching, substitutions, cooking |
 | `mealplan` | Meal calendar, nutrition, shopping gaps, calendar feed |
-| `automation` | AI providers, receipt/recipe parsing, OCR, classifiers |
+| `automation` | Recipe parsing, OCR, food judge, classifiers |
 | `agent` | Agent-facing API used by the MCP server |
 | `wildstone` | Optional Wildstone Home Lab integration |
 

@@ -11,7 +11,7 @@ from app.models.base import Base
 class ConnectorConfig(Base):
     """In-app configuration for a vendor connector (ADR 0009).
 
-    One row per connector ``key`` (e.g. "imap"). ``ciphertext`` is a Fernet token
+    One row per connector ``key`` (e.g. "kroger"). ``ciphertext`` is a Fernet token
     over the full JSON config (including secrets); it is decrypted server-side to
     build effective config and is never returned to clients verbatim.
     """

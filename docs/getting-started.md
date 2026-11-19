@@ -61,7 +61,7 @@ opens your browser. See [`launcher/README.md`](../launcher/README.md).
 1. Open PantryOS in your browser.
 2. The setup wizard asks for a household name, an admin account and whether to
    seed default locations (Fridge, Freezer, Pantry…).
-3. Start adding items — scan a barcode, import a receipt, or add by hand.
+3. Start adding items — scan a barcode or add by hand (or connect an AI agent over MCP to add items from receipts).
 
 ## Next steps
 

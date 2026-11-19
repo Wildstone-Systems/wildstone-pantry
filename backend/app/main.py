@@ -10,12 +10,10 @@ import modules  # noqa: F401  (imports module manifests so they self-register)
 from app.core import settings
 from app.core.validation import request_validation_error_handler
 from app.routes import (
-    activation_router,
     agent_guide_router,
     agent_keys_router,
     auth_router,
     devices_router,
-    entitlement_router,
     feedback_router,
     health_router,
     household_router,
@@ -36,10 +34,9 @@ async def lifespan(app: FastAPI):
     _warn_deprecated_license_settings()
     _seed_ingredient_reference()
     backup_task = _start_backup_scheduler()
-    refresh_task = _start_entitlement_refresher()
     module_tasks = start_background_tasks()
     yield
-    for task in (backup_task, refresh_task, *module_tasks):
+    for task in (backup_task, *module_tasks):
         if task is not None:
             task.cancel()
 
@@ -67,40 +64,6 @@ def _start_backup_scheduler():
             except Exception:  # noqa: BLE001 - a failed backup must never crash the app
                 logging.getLogger(__name__).warning("scheduled backup failed", exc_info=True)
             await asyncio.sleep(3600)
-
-    return asyncio.get_running_loop().create_task(_loop())
-
-
-def _start_entitlement_refresher():
-    """Daily entitlement renewal (ADR 0018 §2): jittered hourly tick; refreshes
-    when the token is >24h since its last renewal. Free mode (no
-    LICENSE_SERVER_URL) starts nothing — zero network calls."""
-    import asyncio
-    import random
-
-    from app.services.entitlement import MODE_CONNECTED, deployment_mode
-
-    if deployment_mode() != MODE_CONNECTED:
-        return None
-
-    async def _loop() -> None:
-        from app.db.session import SessionLocal
-        from app.services import activation as activation_service
-
-        while True:
-            try:
-                def _tick() -> None:
-                    with SessionLocal() as db:
-                        state = activation_service.get_state(db)
-                        if state is not None and activation_service.refresh_due(state):
-                            activation_service.refresh(db)
-
-                await asyncio.to_thread(_tick)
-            except asyncio.CancelledError:
-                raise
-            except Exception:  # noqa: BLE001 - refresh failures never crash the app
-                logging.getLogger(__name__).warning("entitlement refresh tick failed", exc_info=True)
-            await asyncio.sleep(3600 + random.randint(0, 600))
 
     return asyncio.get_running_loop().create_task(_loop())
 
@@ -180,13 +143,10 @@ def create_app() -> FastAPI:
     app.include_router(oidc_router, prefix="/api")
     # First-run wizard: open while setup is incomplete, 403 after (ADR 0018 §7).
     app.include_router(setup_router, prefix="/api")
-    # Entitlement/mode is ungated — the frontend reads it up front to decide
-    # which premium surfaces to show (ADR 0012/0018).
-    app.include_router(entitlement_router, prefix="/api")
     # Agent API guide — ungated so an agent can discover how to call the API.
     app.include_router(agent_guide_router, prefix="/api")
     # Feature modules (catalog, ...). Local features are never license-gated
-    # (ADR 0018); per-route auth/entitlement dependencies live on the routes.
+    # (ADR 0018); per-route auth dependencies live on the routes.
     mount_modules(app, api_prefix="/api")
     app.include_router(feedback_router, prefix="/api")
     app.include_router(agent_keys_router, prefix="/api")
@@ -194,8 +154,6 @@ def create_app() -> FastAPI:
     app.include_router(household_router, prefix="/api")
     # System surface: /version open like /health; backup management admin-only.
     app.include_router(system_router, prefix="/api")
-    # Activation key management (ADR 0018 §2): real-admin-only.
-    app.include_router(activation_router, prefix="/api")
     # Device pairing + management (ADR 0018 §8).
     app.include_router(devices_router, prefix="/api")
 

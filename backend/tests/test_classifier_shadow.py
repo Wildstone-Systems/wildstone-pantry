@@ -89,7 +89,6 @@ def test_default_disabled_separate_config_and_no_transport(client, admin, transp
     result = client.post(BASE + "/evaluations", headers=admin, json=REQUEST).json()
     assert result["status"] == "abstain" and result["reason_code"] == "disabled"
     assert calls == []
-    assert client.get("/api/ai/status", headers=admin).json()["active_vision_provider"] is None
 
 
 @pytest.mark.parametrize(
@@ -578,23 +577,10 @@ def test_production_client_disables_environment_proxies_and_redirects(monkeypatc
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-def test_classifier_is_not_a_legacy_receipt_or_nutrition_fallback(client, admin, transport, monkeypatch, enabled):
-    import modules.automation
+def test_classifier_is_not_a_legacy_nutrition_fallback(client, admin, transport, monkeypatch, enabled):
     from modules.catalog.services import barcode_providers, barcodes
 
     configure(client, admin, enabled=enabled)
-
-    def missing_ocr(_image):
-        raise RuntimeError("OCR is unavailable in this fixture")
-
-    monkeypatch.setattr(modules.automation, "image_bytes_to_text", missing_ocr)
-    location = client.post("/api/locations", json={"name": "Shadow Test Pantry"}, headers=admin).json()
-    response = client.post(
-        f"/api/receipts/preview-image?location_id={location['id']}",
-        headers=admin,
-        files={"file": ("synthetic.jpg", b"image", "image/jpeg")},
-    )
-    assert response.status_code == 503
     monkeypatch.setattr(
         barcodes,
         "lookup_external_merged",

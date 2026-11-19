@@ -94,33 +94,11 @@ class Settings(BaseSettings):
     # entry, e.g. https://<host>/api/integrations/kroger/oauth/callback.
     kroger_redirect_uri: str = ""
 
-    # Purchase intake over IMAP (step 5b, IN). Parse order-confirmation emails
-    # from the family's own mailbox — no Gmail API / Google CASA burden. These env
-    # values are the FALLBACK/seed; the in-app admin Integrations screen stores an
-    # override in the DB (encrypted) that takes precedence at request time (ADR 0009).
-    imap_host: str = ""
-    imap_port: int = 993
-    imap_username: str = ""
-    imap_password: str = ""
-    imap_mailbox: str = "INBOX"
-
     # Symmetric key (Fernet, urlsafe-base64) used to encrypt connector credentials
     # stored in the DB via the admin Integrations screen (ADR 0009). Empty = the app
     # refuses to persist secrets in-app (env-only config still works). Generate with
     # `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
     config_secret_key: str = ""
-
-    # Productization seam (ADR 0012). Both empty = "free mode": a fully-functional
-    # self-hosted instance where everything runs locally and nothing phones home.
-    # Point these at the hosted PantryOS backend to move an instance into
-    # "connected mode" — remote entitlement (premium tiers) and OAuth brokering
-    # for store integrations — WITHOUT shipping any third-party client secrets.
-    license_server_url: str = ""
-    integration_broker_url: str = ""
-    # Ed25519 public key(s) for verifying entitlement tokens OFFLINE, comma-
-    # separated urlsafe-base64 (ADR 0018 §2). Ships with the product build;
-    # accepts two entries during signer rotation.
-    license_public_keys: str = ""
 
     # USDA FoodData Central — a second barcode source for US branded groceries
     # that Open Food Facts often misses (public-domain data). Dormant until set;

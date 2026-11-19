@@ -14,75 +14,57 @@ def _admin_headers(client: httpx.Client) -> dict[str, str]:
 
 
 def test_requires_admin_login(client: httpx.Client) -> None:
-    assert client.get("/api/admin/integrations/imap").status_code == 401
+    assert client.get("/api/admin/integrations/instacart").status_code == 401
 
 
-def test_get_imap_config_defaults_to_env_only(client: httpx.Client) -> None:
+def test_get_config_defaults_to_env_only(client: httpx.Client) -> None:
     h = _admin_headers(client)
-    body = client.get("/api/admin/integrations/imap", headers=h).json()
-    assert body["key"] == "imap"
+    body = client.get("/api/admin/integrations/instacart", headers=h).json()
+    assert body["key"] == "instacart"
     assert body["from_env_only"] is True
     assert body["has_override"] is False
-    assert body["secret_set"]["password"] is False
+    assert body["secret_set"]["api_key"] is False
     assert body["secrets_available"] is True  # conftest sets CONFIG_SECRET_KEY
 
 
-def test_set_config_turns_connector_live_without_restart(client: httpx.Client) -> None:
+def test_set_config_stores_values_and_hides_secrets(client: httpx.Client) -> None:
     h = _admin_headers(client)
-
-    # Dormant to start.
-    conns = {c["key"]: c for c in client.get("/api/purchases/connectors", headers=h).json()["connectors"]}
-    assert conns["imap"]["configured"] is False
-    assert conns["imap"]["configurable"] is True
-
-    # Configure it in-app.
     resp = client.put(
-        "/api/admin/integrations/imap",
-        json={"updates": {"host": "imap.example.com", "username": "family@example.com", "password": "app-pass"}},
+        "/api/admin/integrations/instacart",
+        json={"updates": {"base_url": "https://connect.example.com", "api_key": "app-key"}},
         headers=h,
     )
     assert resp.status_code == 200
     view = resp.json()
-    assert view["values"]["host"] == "imap.example.com"
-    assert view["values"]["username"] == "family@example.com"
-    assert view["secret_set"]["password"] is True
+    assert view["values"]["base_url"] == "https://connect.example.com"
+    assert view["secret_set"]["api_key"] is True
     assert view["has_override"] is True
     assert view["from_env_only"] is False
-    # The password is never echoed back anywhere in the view.
-    assert "app-pass" not in resp.text
-
-    # The connector is now live — resolved from the DB override, no restart.
-    conns = {c["key"]: c for c in client.get("/api/purchases/connectors", headers=h).json()["connectors"]}
-    assert conns["imap"]["configured"] is True
+    # The secret is never echoed back anywhere in the view.
+    assert "app-key" not in resp.text
 
 
 def test_partial_update_keeps_existing_secret(client: httpx.Client) -> None:
     h = _admin_headers(client)
     client.put(
-        "/api/admin/integrations/imap",
-        json={"updates": {"host": "imap.example.com", "username": "u", "password": "secret1"}},
+        "/api/admin/integrations/instacart",
+        json={"updates": {"base_url": "https://a.example.com", "api_key": "secret1"}},
         headers=h,
     )
-    # Update only the mailbox; omit password → it must be retained.
-    client.put("/api/admin/integrations/imap", json={"updates": {"mailbox": "Receipts"}}, headers=h)
-    view = client.get("/api/admin/integrations/imap", headers=h).json()
-    assert view["values"]["mailbox"] == "Receipts"
-    assert view["secret_set"]["password"] is True
+    # Update only the base URL; omit api_key → it must be retained.
+    client.put("/api/admin/integrations/instacart", json={"updates": {"base_url": "https://b.example.com"}}, headers=h)
+    view = client.get("/api/admin/integrations/instacart", headers=h).json()
+    assert view["values"]["base_url"] == "https://b.example.com"
+    assert view["secret_set"]["api_key"] is True
 
 
 def test_clear_reverts_to_env(client: httpx.Client) -> None:
     h = _admin_headers(client)
-    client.put(
-        "/api/admin/integrations/imap",
-        json={"updates": {"host": "imap.example.com", "username": "u", "password": "p"}},
-        headers=h,
-    )
-    client.delete("/api/admin/integrations/imap", headers=h)
-    view = client.get("/api/admin/integrations/imap", headers=h).json()
+    client.put("/api/admin/integrations/instacart", json={"updates": {"api_key": "p"}}, headers=h)
+    client.delete("/api/admin/integrations/instacart", headers=h)
+    view = client.get("/api/admin/integrations/instacart", headers=h).json()
     assert view["has_override"] is False
     assert view["from_env_only"] is True
-    conns = {c["key"]: c for c in client.get("/api/purchases/connectors", headers=h).json()["connectors"]}
-    assert conns["imap"]["configured"] is False
 
 
 def test_unknown_connector_is_404(client: httpx.Client) -> None:
@@ -125,7 +107,7 @@ def test_unprovisioned_admin_is_denied(client: httpx.Client) -> None:
         db.close()
 
     resp = client.get(
-        "/api/admin/integrations/imap", headers={"Authorization": "Bearer unprovisioned-admin-token"}
+        "/api/admin/integrations/instacart", headers={"Authorization": "Bearer unprovisioned-admin-token"}
     )
     assert resp.status_code == 403
     assert "provision" in resp.json()["detail"].lower()
@@ -137,13 +119,13 @@ def test_ciphertext_at_rest_is_not_plaintext(client: httpx.Client) -> None:
 
     h = _admin_headers(client)
     client.put(
-        "/api/admin/integrations/imap",
-        json={"updates": {"host": "imap.example.com", "username": "u", "password": "topsecret"}},
+        "/api/admin/integrations/instacart",
+        json={"updates": {"api_key": "topsecret"}},
         headers=h,
     )
     db = SessionLocal()
     try:
-        row = db.get(ConnectorConfig, "imap")
+        row = db.get(ConnectorConfig, "instacart")
         assert row is not None
         assert "topsecret" not in row.ciphertext  # encrypted, not stored in the clear
     finally:
