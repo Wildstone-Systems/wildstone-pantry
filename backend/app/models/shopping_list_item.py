@@ -29,7 +29,7 @@ class ShoppingListItem(Base):
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     quantity: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False, default=1)
-    unit: Mapped[str] = mapped_column(String(24), nullable=False, default="each")
+    unit: Mapped[str] = mapped_column(String(24), nullable=False, default="package")  # whole packages
     source: Mapped[str] = mapped_column(String(16), nullable=False, default="manual")  # auto | manual
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")  # pending | purchased
     note: Mapped[str | None] = mapped_column(Text(), nullable=True)

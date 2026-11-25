@@ -74,3 +74,54 @@ def test_package_unit_means_whole_packages_in_and_out(client: httpx.Client) -> N
     assert _on_hand(client, item["id"], loc["id"]) == 39
     assert client.post("/api/inventory/remove", json={**ref, "quantity": 1, "unit": "package"}).status_code < 300
     assert _on_hand(client, item["id"], loc["id"]) == 19
+
+
+def _entry(client: httpx.Client, item_id: str):
+    return next((e for e in client.get("/api/shopping-list").json()["items"] if e["item_id"] == item_id), None)
+
+
+def test_restock_threshold_can_be_counted_in_packages(client: httpx.Client) -> None:
+    loc = client.post("/api/locations", json={"name": "Fridge"}).json()
+    milk = client.post(
+        "/api/items",
+        json={
+            "name": "Milk jug",
+            "stock_mode": "measured",
+            "size_quantity": 64,
+            "size_unit": "floz",
+            "restock_threshold": 2,
+            "restock_unit": "package",
+        },
+    ).json()
+    assert milk["restock_unit"] == "package"
+    ref = {"item_id": milk["id"], "location_id": loc["id"]}
+
+    # 1 jug on hand < 2 jugs → buy 1 package (not "2 ml short").
+    client.post("/api/inventory/add", json={**ref, "quantity": 1, "unit": "package"})
+    entry = _entry(client, milk["id"])
+    assert (float(entry["quantity"]), entry["unit"]) == (1.0, "package")
+
+    # 2 jugs on hand → at threshold, off the list.
+    client.post("/api/inventory/add", json={**ref, "quantity": 1, "unit": "package"})
+    assert _entry(client, milk["id"]) is None
+
+
+def test_restock_unit_defaults_to_base(client: httpx.Client) -> None:
+    item = client.post("/api/items", json={"name": "Rice", "restock_threshold": 3}).json()
+    assert item["restock_unit"] == "base"
+
+
+def test_package_threshold_without_size_is_ignored_for_measured(client: httpx.Client) -> None:
+    item = client.post(
+        "/api/items",
+        json={
+            "name": "Mystery syrup",
+            "stock_mode": "measured",
+            "size_quantity": 16,
+            "size_unit": "oz",
+            "base_unit": "ml",  # ml stock, weight-sized package, no density
+            "restock_threshold": 1,
+            "restock_unit": "package",
+        },
+    ).json()
+    assert _entry(client, item["id"]) is None  # no bridge → never guess

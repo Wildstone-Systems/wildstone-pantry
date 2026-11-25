@@ -5,7 +5,6 @@ import {
   Divider,
   Group,
   Modal,
-  NumberInput,
   Select,
   Stack,
   Text,
@@ -21,6 +20,7 @@ import { nutritionReferenceSourceLabel, nutritionReferenceStatusLabel } from "..
 import { getApiErrorMessage } from "@/api/errors";
 import { useAppState } from "@/state/AppStateProvider";
 
+import { RestockField } from "./RestockField";
 import { itemFormSchema, type ItemFormValues } from "../forms/item-schema";
 import { useRescanItem, useUpdateItem, type Item, type ReferenceReview } from "../hooks/catalog-hooks";
 import { NutritionFields } from "./NutritionFields";
@@ -115,6 +115,7 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
         size_description: item.size_description ?? null,
         stock_mode: item.stock_mode ?? "counted",
         restock_threshold: item.restock_threshold ?? null,
+        restock_unit: item.restock_unit ?? "base",
         calories_per_unit: item.calories_per_unit ?? null,
         energy_kcal_100g: item.energy_kcal_100g ?? null,
         protein_g_100g: item.protein_g_100g ?? null,
@@ -150,6 +151,7 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
         size_description: values.size_description?.trim() ? values.size_description.trim() : null,
         stock_mode: values.stock_mode ?? "counted",
         restock_threshold: values.restock_threshold ?? null,
+        restock_unit: values.restock_unit ?? "base",
         calories_per_unit: values.calories_per_unit ?? null,
         energy_kcal_100g: values.energy_kcal_100g ?? null,
         protein_g_100g: values.protein_g_100g ?? null,
@@ -261,20 +263,7 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
           </Text>
         ) : null}
 
-        <Controller
-          name="restock_threshold"
-          control={control}
-          render={({ field }) => (
-            <NumberInput
-              label="Restock at (min stock)"
-              description="When on-hand drops below this, the item is added to the shopping list. Leave blank to skip."
-              min={0}
-              value={field.value ?? ""}
-              onChange={(v) => field.onChange(v === "" ? null : Number(v))}
-              error={errors.restock_threshold?.message}
-            />
-          )}
-        />
+        <RestockField control={control} errors={errors} />
 
         <Divider label="Nutrition" labelPosition="left" mt="xs" />
         <Group gap="xs" wrap="wrap">

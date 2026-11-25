@@ -22,6 +22,8 @@ export const itemFormSchema = z.object({
   // Min-stock level (step 3): below this, the item auto-appears on the shopping
   // list. Optional — accepts null (after form reset), undefined, or a number.
   restock_threshold: optionalNonNegative,
+  // What the threshold is counted in: whole packages or stock (base) units.
+  restock_unit: z.enum(["base", "package"]).optional(),
   // Package size (populated from OpenFoodFacts on scan, editable here): the
   // amount the product is sold in — e.g. 1 gal of milk. Feeds unit-conversion.
   size_quantity: optionalNonNegative,

@@ -27,6 +27,7 @@ from modules.catalog.services.units import (
     convert_quantity,
     is_count_unit,
     net_contents_in_base,
+    restock_threshold_in_base,
 )
 from modules.inventory.models import InventoryBalance
 from modules.inventory.services.feed import on_hand_by_item as inventory_on_hand
@@ -37,6 +38,20 @@ from modules.shopping.connectors import ExportLine, ExportResult, get_target, li
 def _on_hand_by_item(db: Session) -> dict[UUID, Decimal]:
     # Inventory owns the balances; read them through its published service.
     return inventory_on_hand(db)
+
+
+def _threshold_in_base(item: Item) -> Decimal | None:
+    """The item's restock threshold in base units, whatever it was entered in."""
+    return restock_threshold_in_base(
+        item.restock_threshold,
+        item.restock_unit,
+        item.base_unit,
+        item.stock_mode,
+        item.size_quantity,
+        item.size_unit,
+        density_g_per_ml=(Decimal(str(item.density_g_per_ml)) if item.density_g_per_ml is not None else None),
+        grams_per_each=(Decimal(str(item.grams_per_each)) if item.grams_per_each is not None else None),
+    )
 
 
 def _pending_item_ids(db: Session) -> set[UUID]:
@@ -66,7 +81,9 @@ def _reconcile_auto_entries(db: Session) -> None:
 
     below: dict[UUID, tuple[Item, Decimal]] = {}
     for item in tracked:
-        threshold = Decimal(item.restock_threshold)
+        threshold = _threshold_in_base(item)
+        if threshold is None:
+            continue  # package threshold with no package size → can't compare
         have = on_hand.get(item.id, Decimal("0"))
         if have < threshold:
             below[item.id] = (item, threshold - have)
@@ -173,7 +190,9 @@ def items_below_threshold(db: Session) -> list[dict]:
     out = []
     for item in tracked:
         have = on_hand.get(item.id, Decimal("0"))
-        threshold = Decimal(item.restock_threshold)
+        threshold = _threshold_in_base(item)
+        if threshold is None:
+            continue
         if have < threshold:
             out.append(
                 {"item_id": item.id, "name": item.name, "on_hand": have, "threshold": threshold, "unit": item.base_unit}

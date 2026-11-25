@@ -490,3 +490,33 @@ def ml_per_each_from_size(
     if grams_per_each is not None and density_g_per_ml:
         return Decimal(grams_per_each) / Decimal(density_g_per_ml)
     return None
+
+
+def restock_threshold_in_base(
+    restock_threshold,
+    restock_unit: str | None,
+    base_unit: str | None,
+    stock_mode: str | None,
+    size_quantity,
+    size_unit: str | None,
+    *,
+    density_g_per_ml: Decimal | None = None,
+    grams_per_each: Decimal | None = None,
+) -> Decimal | None:
+    """An item's restock threshold in its base unit (the unit on-hand is in).
+
+    'base' thresholds pass through. 'package' thresholds ("keep 2 jugs") are
+    multiplied by one package's net contents; a counted item with no pack size
+    is one unit per package. None when unset or there's no bridge — never guess."""
+    if restock_threshold is None:
+        return None
+    threshold = Decimal(str(restock_threshold))
+    if (restock_unit or "base") != PACKAGE_UNIT:
+        return threshold
+    net = net_contents_in_base(
+        base_unit, stock_mode, size_quantity, size_unit,
+        density_g_per_ml=density_g_per_ml, grams_per_each=grams_per_each,
+    )
+    if net is None:
+        return threshold if is_count_unit(base_unit_for(base_unit, stock_mode, size_unit)) else None
+    return threshold * net

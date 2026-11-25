@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 StockMode = Literal["counted", "measured"]
+RestockUnit = Literal["base", "package"]
 
 
 class ItemCreate(BaseModel):
@@ -31,6 +32,7 @@ class ItemCreate(BaseModel):
     category_id: UUID | None = None
     default_expiration_days: int | None = Field(default=None, ge=0)
     restock_threshold: Decimal | None = Field(default=None, ge=0)
+    restock_unit: RestockUnit | None = None
     calories_per_unit: Decimal | None = Field(default=None, ge=0)
     energy_kcal_100g: Decimal | None = Field(default=None, ge=0)
     protein_g_100g: Decimal | None = Field(default=None, ge=0)
@@ -71,6 +73,7 @@ class ItemUpdate(BaseModel):
     category_id: UUID | None = None
     default_expiration_days: int | None = Field(default=None, ge=0)
     restock_threshold: Decimal | None = Field(default=None, ge=0)
+    restock_unit: RestockUnit | None = None
     calories_per_unit: Decimal | None = Field(default=None, ge=0)
     energy_kcal_100g: Decimal | None = Field(default=None, ge=0)
     protein_g_100g: Decimal | None = Field(default=None, ge=0)
@@ -130,6 +133,7 @@ class ItemRead(BaseModel):
     category_id: UUID | None
     default_expiration_days: int | None
     restock_threshold: float | None
+    restock_unit: str = "base"
     calories_per_unit: float | None
     energy_kcal_100g: float | None
     protein_g_100g: float | None

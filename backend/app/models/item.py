@@ -121,6 +121,9 @@ class Item(Base):
     # Min-stock level (step 3): when household on-hand drops below this, the item
     # becomes an auto entry on the shopping list. Null = not tracked for restock.
     restock_threshold: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    # What `restock_threshold` is counted in: 'base' (each/g/ml — the legacy
+    # meaning) or 'package' ("keep 2 jugs"). Converted to base at reconcile time.
+    restock_unit: Mapped[str] = mapped_column(String(16), nullable=False, default="base", server_default="base")
     # Soft-delete: archived items stay in the DB so recipe ingredients, inventory
     # and history keep resolving; they're hidden from default catalog/picker lists
     # and can be reactivated instead of recreated.
