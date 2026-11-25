@@ -21,7 +21,7 @@ from app.models import Item, ShoppingListItem
 from modules.catalog.schemas.item import ItemCreate
 from modules.catalog.services.barcodes import find_item_by_name, lookup_barcode, normalize_barcode, rescan_item, resolve_local_item
 from modules.catalog.services.items import create_item, get_item
-from modules.catalog.services.units import convert_quantity, net_contents_in_base, normalize_unit
+from modules.catalog.services.units import base_unit_for, convert_quantity, is_count_unit, net_contents_in_base, normalize_unit
 from modules.inventory.models import InventoryBalance
 from modules.inventory.services.feed import on_hand_by_item as inventory_on_hand
 from modules.shopping import repository
@@ -92,7 +92,11 @@ def _reconcile_auto_entries(db: Session) -> None:
         # order whole packages — else "3 pouches short" orders 3 packs = 60 pouches,
         # or "50 g short" orders 50 jars. Convert the base shortfall up to packages.
         qty = needed if needed > 0 else Decimal("1")
-        entry_unit = unit or "each"
+        # Without a package bridge the shortfall stays a base-unit MEASURE (e.g.
+        # "1000 ml"), never relabelled "each": the cart reads "each" as a package
+        # count, so "1000 each" would order 1000 packages.
+        base = unit or base_unit_for(item.base_unit, item.stock_mode, item.size_unit)
+        entry_unit = base if not is_count_unit(base) else "each"
         per_pack = net_contents_in_base(
             item.base_unit,
             item.stock_mode,
