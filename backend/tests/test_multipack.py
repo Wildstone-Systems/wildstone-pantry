@@ -83,7 +83,7 @@ def test_measured_item_stores_grams_and_restocks_by_the_jar(client: httpx.Client
     auto = next(e for e in entries if e["item_id"] == item and e["source"] == "auto")
     # ~3.3 g short → ceil(3.3 / 56.7) = ONE jar, and the entry is a package (each).
     assert float(auto["quantity"]) == 1.0
-    assert auto["unit"] == "each"
+    assert auto["unit"] == "package"
 
 
 def test_flipping_tracking_recomputes_base_unit(client: httpx.Client) -> None:
