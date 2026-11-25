@@ -20,6 +20,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useLocations } from "@/api/hooks";
 import { getApiErrorMessage } from "@/api/errors";
 import { ROUTES } from "@/routes/paths";
+import { formatQuantity } from "../lib/formatQuantity";
 
 import {
   useCompleteHandoff,
@@ -147,7 +148,7 @@ export function HandoffSessionPage() {
               {item.name}
             </Text>
             <Text span size="sm" c="dimmed">
-              {String(item.quantity)} {item.unit}
+              {formatQuantity(item.quantity, item.unit)}
             </Text>
             <Badge size="xs" variant="light" color={STATE_COLOR[item.state] ?? "gray"}>
               {item.state}

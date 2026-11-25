@@ -21,7 +21,13 @@ from app.models import Item, ShoppingListItem
 from modules.catalog.schemas.item import ItemCreate
 from modules.catalog.services.barcodes import find_item_by_name, lookup_barcode, normalize_barcode, rescan_item, resolve_local_item
 from modules.catalog.services.items import create_item, get_item
-from modules.catalog.services.units import base_unit_for, convert_quantity, is_count_unit, net_contents_in_base, normalize_unit
+from modules.catalog.services.units import (
+    PACKAGE_UNIT,
+    base_unit_for,
+    convert_quantity,
+    is_count_unit,
+    net_contents_in_base,
+)
 from modules.inventory.models import InventoryBalance
 from modules.inventory.services.feed import on_hand_by_item as inventory_on_hand
 from modules.shopping import repository
@@ -93,10 +99,10 @@ def _reconcile_auto_entries(db: Session) -> None:
         # or "50 g short" orders 50 jars. Convert the base shortfall up to packages.
         qty = needed if needed > 0 else Decimal("1")
         # Without a package bridge the shortfall stays a base-unit MEASURE (e.g.
-        # "1000 ml"), never relabelled "each": the cart reads "each" as a package
-        # count, so "1000 each" would order 1000 packages.
+        # "1000 ml"), never relabelled as packages — "1000 package" would order
+        # 1000 packages. A counted item with no pack size is one unit per package.
         base = unit or base_unit_for(item.base_unit, item.stock_mode, item.size_unit)
-        entry_unit = base if not is_count_unit(base) else "each"
+        entry_unit = base if not is_count_unit(base) else PACKAGE_UNIT
         per_pack = net_contents_in_base(
             item.base_unit,
             item.stock_mode,
@@ -107,7 +113,7 @@ def _reconcile_auto_entries(db: Session) -> None:
         )
         if per_pack and per_pack > 0:
             qty = (qty / per_pack).to_integral_value(rounding=ROUND_CEILING)
-            entry_unit = "each"  # a package
+            entry_unit = PACKAGE_UNIT
         qty = max(qty, Decimal("1"))
         db.add(
             ShoppingListItem(
@@ -216,7 +222,7 @@ def add_manual_entry(
     name: str,
     item_id: UUID | None = None,
     quantity: Decimal = Decimal("1"),
-    unit: str = "each",
+    unit: str = PACKAGE_UNIT,
     note: str | None = None,
     source: str = "manual",
 ) -> dict:
@@ -325,7 +331,7 @@ def select_offer(
     *,
     offer: dict,
     quantity: Decimal = Decimal("1"),
-    unit: str = "each",
+    unit: str = PACKAGE_UNIT,
     entry_id: UUID | None = None,
     item_id: UUID | None = None,
 ) -> dict:
@@ -493,10 +499,6 @@ def _kroger_upc(raw: str | None) -> str | None:
     return None
 
 
-# Units where the entry quantity is already a package/pack count, not a measure.
-_COUNT_UNITS = {"each", "ea", "ct", "pack", "pk", "unit", ""}
-
-
 def _cart_quantity(entry: dict, item: Item | None) -> int:
     """How many PACKAGES to order for a shopping entry.
 
@@ -509,8 +511,10 @@ def _cart_quantity(entry: dict, item: Item | None) -> int:
         qty = Decimal(str(entry["quantity"]))
     except (TypeError, ValueError, KeyError):
         return 1
-    unit = normalize_unit(entry.get("unit") or "")
-    if unit in _COUNT_UNITS:
+    unit = entry.get("unit") or ""
+    # On the buy list any count unit ('package', or legacy 'each'/'ct') is
+    # already a package count; only a measure needs dividing by pack size.
+    if is_count_unit(unit):
         return max(1, int(qty.to_integral_value(rounding=ROUND_HALF_UP)))
 
     if item is not None and item.size_quantity and item.size_unit:
@@ -609,7 +613,7 @@ def instacart_line_items(db: Session) -> list[dict]:
         li: dict = {
             "name": entry["name"],
             "quantity": float(entry["quantity"]),
-            "unit": entry["unit"] or "each",
+            "unit": entry["unit"] or PACKAGE_UNIT,
         }
         upc = ((entry.get("chosen_offer") or {}).get("upc") or "").strip()
         if upc:

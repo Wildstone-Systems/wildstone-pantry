@@ -44,6 +44,9 @@ _VOLUME_TO_ML: dict[str, Decimal] = {
 
 # Common spelling aliases → canonical unit token.
 _ALIASES: dict[str, str] = {
+    "packages": "package",
+    "pkg": "package",
+    "pkgs": "package",
     "gram": "g",
     "grams": "g",
     "gramme": "g",
@@ -129,7 +132,16 @@ def infer_stock_mode(size_unit: str | None) -> str:
 
 # Units that denote whole, discrete things (a pouch, a can), as opposed to an
 # amount (grams, ml). Kept here so intake and shopping agree on what "counted" means.
-_COUNT_UNITS: set[str] = {"each", "ea", "ct", "count", "pack", "pk", "unit", "piece", "pieces", ""}
+_COUNT_UNITS: set[str] = {"each", "ea", "ct", "count", "pack", "pk", "unit", "piece", "pieces", "package", ""}
+
+# One whole purchased package (a box of 20 pouches, a ½-gal jug) — the unit the
+# shopping list, cart and purchase lines are counted in. Distinct from 'each',
+# which inventory and consumption use for ONE base unit (one pouch).
+PACKAGE_UNIT = "package"
+
+
+def is_package_unit(unit: str | None) -> bool:
+    return normalize_unit(unit or "") == PACKAGE_UNIT
 
 
 def is_count_unit(unit: str | None) -> bool:

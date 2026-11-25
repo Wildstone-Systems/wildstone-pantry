@@ -39,3 +39,38 @@ def test_reorder_orders_whole_packages(client: httpx.Client, name, body, package
     entry = next(e for e in client.get("/api/shopping-list").json()["items"] if e["item_id"] == item["id"])
     with SessionLocal() as db:
         assert _cart_quantity(entry, db.get(Item, item["id"])) == packages
+
+
+def _on_hand(client: httpx.Client, item_id: str, location_id: str) -> float:
+    rows = client.get(f"/api/inventory?location_id={location_id}").json()["items"]
+    return sum(float(r["quantity"]) for r in rows if r["item_id"] == item_id)
+
+
+def test_reorder_entries_are_counted_in_packages(client: httpx.Client) -> None:
+    item = client.post(
+        "/api/items",
+        json={"name": "Pouches", "stock_mode": "counted", "size_quantity": 20, "size_unit": "ea", "restock_threshold": 30},
+    ).json()
+    entry = next(e for e in client.get("/api/shopping-list").json()["items"] if e["item_id"] == item["id"])
+    assert (float(entry["quantity"]), entry["unit"]) == (2.0, "package")
+
+
+def test_manual_entries_default_to_package(client: httpx.Client) -> None:
+    entry = client.post("/api/shopping-list", json={"name": "Paper towels", "quantity": 2}).json()
+    assert entry["unit"] == "package"
+
+
+def test_package_unit_means_whole_packages_in_and_out(client: httpx.Client) -> None:
+    loc = client.post("/api/locations", json={"name": "Pantry"}).json()
+    item = client.post(
+        "/api/items", json={"name": "Snack box", "stock_mode": "counted", "size_quantity": 20, "size_unit": "ea"}
+    ).json()
+    ref = {"item_id": item["id"], "location_id": loc["id"]}
+
+    # Buying 2 packages stocks 40 pouches; 'each' still means one pouch.
+    assert client.post("/api/inventory/add", json={**ref, "quantity": 2, "unit": "package"}).status_code < 300
+    assert _on_hand(client, item["id"], loc["id"]) == 40
+    assert client.post("/api/inventory/remove", json={**ref, "quantity": 1, "unit": "each"}).status_code < 300
+    assert _on_hand(client, item["id"], loc["id"]) == 39
+    assert client.post("/api/inventory/remove", json={**ref, "quantity": 1, "unit": "package"}).status_code < 300
+    assert _on_hand(client, item["id"], loc["id"]) == 19

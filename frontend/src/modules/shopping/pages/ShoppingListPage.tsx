@@ -34,6 +34,7 @@ import {
 } from "../hooks/shopping-list-hooks";
 import { HandoffStartCard } from "../components/HandoffStartCard";
 import { MatchOfferModal } from "../components/MatchOfferModal";
+import { formatQuantity } from "../lib/formatQuantity";
 
 const PROVIDER_LABEL: Record<string, string> = {
   kroger: "Kroger",
@@ -167,7 +168,7 @@ export function ShoppingListPage() {
         />
         <div style={{ minWidth: 0 }}>
           <Text td={e.status === "purchased" ? "line-through" : undefined}>
-            {e.name} · {String(e.quantity)} {e.unit}
+            {e.name} · {formatQuantity(e.quantity, e.unit)}
             {e.chosen_offer?.size ? (
               <Text span c="dimmed">
                 {" "}
