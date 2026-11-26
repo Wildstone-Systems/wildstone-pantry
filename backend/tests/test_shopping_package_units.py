@@ -125,3 +125,24 @@ def test_package_threshold_without_size_is_ignored_for_measured(client: httpx.Cl
         },
     ).json()
     assert _entry(client, item["id"]) is None  # no bridge → never guess
+
+
+def test_one_stocked_package_meets_a_one_package_threshold(client: httpx.Client) -> None:
+    """16 oz = 453.59237 g, but on-hand stores 453.592 g. A full shelf must not reorder."""
+    loc = client.post("/api/locations", json={"name": "Shelf"}).json()
+    item = client.post(
+        "/api/items",
+        json={
+            "name": "Flour bag",
+            "stock_mode": "measured",
+            "size_quantity": 16,
+            "size_unit": "oz",
+            "restock_threshold": 1,
+            "restock_unit": "package",
+        },
+    ).json()
+    client.post(
+        "/api/inventory/add",
+        json={"item_id": item["id"], "location_id": loc["id"], "quantity": 1, "unit": "package"},
+    )
+    assert _entry(client, item["id"]) is None

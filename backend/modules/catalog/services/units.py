@@ -18,7 +18,7 @@ this module only does arithmetic.
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from difflib import get_close_matches
 
 # Grams per 1 unit of mass.
@@ -519,4 +519,7 @@ def restock_threshold_in_base(
     )
     if net is None:
         return threshold if is_count_unit(base_unit_for(base_unit, stock_mode, size_unit)) else None
-    return threshold * net
+    # Round like on-hand is stored (Numeric(12,3)): 1 × 453.59237 g must compare
+    # equal to the 453.592 g one stocked package actually books, or a full
+    # shelf reorders immediately.
+    return (threshold * net).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
