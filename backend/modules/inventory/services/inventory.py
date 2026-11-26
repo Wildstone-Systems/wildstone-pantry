@@ -14,6 +14,7 @@ from core.events.base import InventoryAdded, InventoryAdjusted, InventoryMoved, 
 from modules.catalog.services.ingredient_reference import resolve_hints
 from modules.catalog.services.units import (
     base_unit_for,
+    is_package_unit,
     convert_quantity,
     default_base_unit,
     grams_per_each_from_size,
@@ -346,6 +347,25 @@ def convert_amount(
         return Decimal(quantity)
 
     density, explicit_gpe = hints if hints is not None else resolve_hints(db, item)
+    if is_package_unit(from_unit):
+        # 'package' = whole packages: expand to net contents in base first. A
+        # counted item with no pack size is one unit per package; a measured one
+        # with no size has no bridge, so refuse rather than guess.
+        base = base_unit_of(item)
+        net = net_contents_in_base(
+            item.base_unit,
+            item.stock_mode,
+            item.size_quantity,
+            item.size_unit,
+            density_g_per_ml=density,
+            grams_per_each=explicit_gpe,
+        )
+        if net is None and not is_count_unit(base):
+            return None
+        quantity = Decimal(quantity) * (net if net is not None else Decimal("1"))
+        from_unit = base
+        if normalize_unit(from_unit) == normalize_unit(to_unit):
+            return quantity
     grams_each = grams_per_each_from_size(
         item.size_quantity, item.size_unit, density_g_per_ml=density, grams_per_each=explicit_gpe
     )
@@ -372,7 +392,8 @@ def convert_to_base(
 ) -> Decimal | None:
     """Recipe/consumption semantics (ADR 0016/0017): ``quantity {unit}`` expressed
     in the item's base unit. A count unit is that many base units (NOT a package —
-    that's intake). None when there is no bridge to base."""
+    that's intake). The explicit 'package' unit means whole packages (see
+    :func:`convert_amount`). None when there is no bridge to base."""
     return convert_amount(db, item, Decimal(quantity), from_unit=unit, to_unit=base_unit_of(item), hints=hints)
 
 

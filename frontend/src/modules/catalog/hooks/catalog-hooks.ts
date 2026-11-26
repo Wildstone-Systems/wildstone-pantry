@@ -35,6 +35,7 @@ export type Item = {
   /** Base unit on-hand is stored & consumed in (ADR 0016): each / g / ml. */
   base_unit: string | null;
   restock_threshold: number | null;
+  restock_unit?: "base" | "package";
   calories_per_unit: number | null;
   // Structured per-100g nutrition (from OpenFoodFacts on scan, or hand-entered).
   energy_kcal_100g: number | null;
@@ -104,6 +105,7 @@ export type ItemUpdateInput = {
   size_description: string | null;
   stock_mode?: "counted" | "measured";
   restock_threshold: number | null;
+  restock_unit?: "base" | "package";
   calories_per_unit: number | null;
   energy_kcal_100g: number | null;
   protein_g_100g: number | null;

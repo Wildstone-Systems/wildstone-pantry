@@ -18,7 +18,7 @@ this module only does arithmetic.
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from difflib import get_close_matches
 
 # Grams per 1 unit of mass.
@@ -44,6 +44,9 @@ _VOLUME_TO_ML: dict[str, Decimal] = {
 
 # Common spelling aliases → canonical unit token.
 _ALIASES: dict[str, str] = {
+    "packages": "package",
+    "pkg": "package",
+    "pkgs": "package",
     "gram": "g",
     "grams": "g",
     "gramme": "g",
@@ -129,7 +132,16 @@ def infer_stock_mode(size_unit: str | None) -> str:
 
 # Units that denote whole, discrete things (a pouch, a can), as opposed to an
 # amount (grams, ml). Kept here so intake and shopping agree on what "counted" means.
-_COUNT_UNITS: set[str] = {"each", "ea", "ct", "count", "pack", "pk", "unit", "piece", "pieces", ""}
+_COUNT_UNITS: set[str] = {"each", "ea", "ct", "count", "pack", "pk", "unit", "piece", "pieces", "package", ""}
+
+# One whole purchased package (a box of 20 pouches, a ½-gal jug) — the unit the
+# shopping list, cart and purchase lines are counted in. Distinct from 'each',
+# which inventory and consumption use for ONE base unit (one pouch).
+PACKAGE_UNIT = "package"
+
+
+def is_package_unit(unit: str | None) -> bool:
+    return normalize_unit(unit or "") == PACKAGE_UNIT
 
 
 def is_count_unit(unit: str | None) -> bool:
@@ -478,3 +490,36 @@ def ml_per_each_from_size(
     if grams_per_each is not None and density_g_per_ml:
         return Decimal(grams_per_each) / Decimal(density_g_per_ml)
     return None
+
+
+def restock_threshold_in_base(
+    restock_threshold,
+    restock_unit: str | None,
+    base_unit: str | None,
+    stock_mode: str | None,
+    size_quantity,
+    size_unit: str | None,
+    *,
+    density_g_per_ml: Decimal | None = None,
+    grams_per_each: Decimal | None = None,
+) -> Decimal | None:
+    """An item's restock threshold in its base unit (the unit on-hand is in).
+
+    'base' thresholds pass through. 'package' thresholds ("keep 2 jugs") are
+    multiplied by one package's net contents; a counted item with no pack size
+    is one unit per package. None when unset or there's no bridge — never guess."""
+    if restock_threshold is None:
+        return None
+    threshold = Decimal(str(restock_threshold))
+    if (restock_unit or "base") != PACKAGE_UNIT:
+        return threshold
+    net = net_contents_in_base(
+        base_unit, stock_mode, size_quantity, size_unit,
+        density_g_per_ml=density_g_per_ml, grams_per_each=grams_per_each,
+    )
+    if net is None:
+        return threshold if is_count_unit(base_unit_for(base_unit, stock_mode, size_unit)) else None
+    # Round like on-hand is stored (Numeric(12,3)): 1 × 453.59237 g must compare
+    # equal to the 453.592 g one stocked package actually books, or a full
+    # shelf reorders immediately.
+    return (threshold * net).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)

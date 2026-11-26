@@ -21,7 +21,14 @@ from app.models import Item, ShoppingListItem
 from modules.catalog.schemas.item import ItemCreate
 from modules.catalog.services.barcodes import find_item_by_name, lookup_barcode, normalize_barcode, rescan_item, resolve_local_item
 from modules.catalog.services.items import create_item, get_item
-from modules.catalog.services.units import convert_quantity, net_contents_in_base, normalize_unit
+from modules.catalog.services.units import (
+    PACKAGE_UNIT,
+    base_unit_for,
+    convert_quantity,
+    is_count_unit,
+    net_contents_in_base,
+    restock_threshold_in_base,
+)
 from modules.inventory.models import InventoryBalance
 from modules.inventory.services.feed import on_hand_by_item as inventory_on_hand
 from modules.shopping import repository
@@ -31,6 +38,20 @@ from modules.shopping.connectors import ExportLine, ExportResult, get_target, li
 def _on_hand_by_item(db: Session) -> dict[UUID, Decimal]:
     # Inventory owns the balances; read them through its published service.
     return inventory_on_hand(db)
+
+
+def _threshold_in_base(item: Item) -> Decimal | None:
+    """The item's restock threshold in base units, whatever it was entered in."""
+    return restock_threshold_in_base(
+        item.restock_threshold,
+        item.restock_unit,
+        item.base_unit,
+        item.stock_mode,
+        item.size_quantity,
+        item.size_unit,
+        density_g_per_ml=(Decimal(str(item.density_g_per_ml)) if item.density_g_per_ml is not None else None),
+        grams_per_each=(Decimal(str(item.grams_per_each)) if item.grams_per_each is not None else None),
+    )
 
 
 def _pending_item_ids(db: Session) -> set[UUID]:
@@ -60,7 +81,9 @@ def _reconcile_auto_entries(db: Session) -> None:
 
     below: dict[UUID, tuple[Item, Decimal]] = {}
     for item in tracked:
-        threshold = Decimal(item.restock_threshold)
+        threshold = _threshold_in_base(item)
+        if threshold is None:
+            continue  # package threshold with no package size → can't compare
         have = on_hand.get(item.id, Decimal("0"))
         if have < threshold:
             below[item.id] = (item, threshold - have)
@@ -92,7 +115,11 @@ def _reconcile_auto_entries(db: Session) -> None:
         # order whole packages — else "3 pouches short" orders 3 packs = 60 pouches,
         # or "50 g short" orders 50 jars. Convert the base shortfall up to packages.
         qty = needed if needed > 0 else Decimal("1")
-        entry_unit = unit or "each"
+        # Without a package bridge the shortfall stays a base-unit MEASURE (e.g.
+        # "1000 ml"), never relabelled as packages — "1000 package" would order
+        # 1000 packages. A counted item with no pack size is one unit per package.
+        base = unit or base_unit_for(item.base_unit, item.stock_mode, item.size_unit)
+        entry_unit = base if not is_count_unit(base) else PACKAGE_UNIT
         per_pack = net_contents_in_base(
             item.base_unit,
             item.stock_mode,
@@ -103,7 +130,7 @@ def _reconcile_auto_entries(db: Session) -> None:
         )
         if per_pack and per_pack > 0:
             qty = (qty / per_pack).to_integral_value(rounding=ROUND_CEILING)
-            entry_unit = "each"  # a package
+            entry_unit = PACKAGE_UNIT
         qty = max(qty, Decimal("1"))
         db.add(
             ShoppingListItem(
@@ -163,7 +190,9 @@ def items_below_threshold(db: Session) -> list[dict]:
     out = []
     for item in tracked:
         have = on_hand.get(item.id, Decimal("0"))
-        threshold = Decimal(item.restock_threshold)
+        threshold = _threshold_in_base(item)
+        if threshold is None:
+            continue
         if have < threshold:
             out.append(
                 {"item_id": item.id, "name": item.name, "on_hand": have, "threshold": threshold, "unit": item.base_unit}
@@ -212,7 +241,7 @@ def add_manual_entry(
     name: str,
     item_id: UUID | None = None,
     quantity: Decimal = Decimal("1"),
-    unit: str = "each",
+    unit: str = PACKAGE_UNIT,
     note: str | None = None,
     source: str = "manual",
 ) -> dict:
@@ -321,7 +350,7 @@ def select_offer(
     *,
     offer: dict,
     quantity: Decimal = Decimal("1"),
-    unit: str = "each",
+    unit: str = PACKAGE_UNIT,
     entry_id: UUID | None = None,
     item_id: UUID | None = None,
 ) -> dict:
@@ -489,10 +518,6 @@ def _kroger_upc(raw: str | None) -> str | None:
     return None
 
 
-# Units where the entry quantity is already a package/pack count, not a measure.
-_COUNT_UNITS = {"each", "ea", "ct", "pack", "pk", "unit", ""}
-
-
 def _cart_quantity(entry: dict, item: Item | None) -> int:
     """How many PACKAGES to order for a shopping entry.
 
@@ -505,8 +530,10 @@ def _cart_quantity(entry: dict, item: Item | None) -> int:
         qty = Decimal(str(entry["quantity"]))
     except (TypeError, ValueError, KeyError):
         return 1
-    unit = normalize_unit(entry.get("unit") or "")
-    if unit in _COUNT_UNITS:
+    unit = entry.get("unit") or ""
+    # On the buy list any count unit ('package', or legacy 'each'/'ct') is
+    # already a package count; only a measure needs dividing by pack size.
+    if is_count_unit(unit):
         return max(1, int(qty.to_integral_value(rounding=ROUND_HALF_UP)))
 
     if item is not None and item.size_quantity and item.size_unit:
@@ -605,7 +632,7 @@ def instacart_line_items(db: Session) -> list[dict]:
         li: dict = {
             "name": entry["name"],
             "quantity": float(entry["quantity"]),
-            "unit": entry["unit"] or "each",
+            "unit": entry["unit"] or PACKAGE_UNIT,
         }
         upc = ((entry.get("chosen_offer") or {}).get("upc") or "").strip()
         if upc:

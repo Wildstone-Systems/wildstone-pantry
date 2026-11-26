@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Group, NumberInput, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Button, Card, Group, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
@@ -13,6 +13,7 @@ import { useAppState } from "@/state/AppStateProvider";
 
 import { NutritionFields } from "../components/NutritionFields";
 import { UsdaSearchModal } from "../components/UsdaSearchModal";
+import { RestockField } from "../components/RestockField";
 import { itemFormSchema, type ItemFormValues } from "../forms/item-schema";
 import { useItems, type Item, type NutritionCandidate } from "../hooks/catalog-hooks";
 
@@ -29,6 +30,7 @@ const EMPTY_ITEM_FORM: ItemFormValues = {
   size_unit: null,
   size_description: null,
   restock_threshold: null,
+  restock_unit: "package",
   calories_per_unit: null,
   energy_kcal_100g: null,
   protein_g_100g: null,
@@ -108,6 +110,7 @@ export function AddItemPage() {
         size_unit: values.size_unit?.trim() ? values.size_unit.trim() : null,
         size_description: values.size_description?.trim() ? values.size_description.trim() : null,
         restock_threshold: values.restock_threshold ?? null,
+        restock_unit: values.restock_unit ?? "base",
         calories_per_unit: values.calories_per_unit ?? null,
         energy_kcal_100g: values.energy_kcal_100g ?? null,
         protein_g_100g: values.protein_g_100g ?? null,
@@ -232,20 +235,7 @@ export function AddItemPage() {
             )}
           />
 
-          <Controller
-            name="restock_threshold"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                label="Restock at (min stock)"
-                description="When on-hand drops below this, the item is added to the shopping list. Leave blank to skip."
-                min={0}
-                value={field.value ?? ""}
-                onChange={(v) => field.onChange(v === "" ? null : Number(v))}
-                error={errors.restock_threshold?.message}
-              />
-            )}
-          />
+          <RestockField control={control} errors={errors} />
 
           <Group gap="xs" wrap="wrap" mt="xs">
             <Button

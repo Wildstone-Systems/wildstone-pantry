@@ -24,6 +24,7 @@ from app.models import (
     RetailerHandoffSession,
     ShoppingListItem,
 )
+from modules.catalog.services.units import PACKAGE_UNIT
 from modules.shopping.retailers import CAP_SEARCH_LINK, get_adapter
 from modules.shopping.services.product_maps import best_link, upsert_mapping
 
@@ -124,7 +125,7 @@ def start_session(db: Session, *, retailer_key: str) -> dict:
                 item_id=entry.get("item_id"),
                 name_snapshot=entry["name"],
                 quantity_snapshot=Decimal(str(entry["quantity"])),
-                unit_snapshot=entry["unit"] or "each",
+                unit_snapshot=entry["unit"] or PACKAGE_UNIT,
                 state="pending",
             )
         )

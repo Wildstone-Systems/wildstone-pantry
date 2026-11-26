@@ -11,7 +11,7 @@ class ShoppingListAddRequest(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     item_id: UUID | None = None
     quantity: Decimal = Field(default=Decimal("1"), gt=0)
-    unit: str = Field(default="each", min_length=1, max_length=24)
+    unit: str = Field(default="package", min_length=1, max_length=24)
     note: str | None = None
 
 
@@ -34,7 +34,7 @@ class OfferSelectRequest(BaseModel):
     price: float | None = Field(default=None, ge=0)
     image_url: str | None = None
     quantity: Decimal = Field(default=Decimal("1"), gt=0)
-    unit: str = Field(default="each", min_length=1, max_length=24)
+    unit: str = Field(default="package", min_length=1, max_length=24)
     entry_id: UUID | None = None  # resolve an existing loose need, else add new
     # Attach the offer to an EXISTING catalog item (e.g. a recipe's ingredient)
     # instead of creating a new one — enriches that item and links to it, so
