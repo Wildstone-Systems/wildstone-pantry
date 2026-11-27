@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/wildstone-systems/pantryos
-  digest: sha256:d0821967c1cbc605b9a0388cfe6314e30c76a1ef33f7f5a3b677dd8bd75de87f
+  digest: sha256:14d6acd15276fa9ede9e7ae577af05e73ef252a51a91af8886b854bef49131f8
 imagePullSecrets: []
 
 # Olares supplies these fields during installation. Empty defaults let the
