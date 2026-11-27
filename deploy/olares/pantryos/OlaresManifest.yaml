@@ -5,9 +5,9 @@ metadata:
   name: pantryos
   appid: pantryos
   title: PantryOS
-  version: '0.1.2'
+  version: '0.1.3'
   description: Household inventory, recipes, meal planning, and shopping lists.
-  icon: https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/v0.0.2-alpha/frontend/public/pwa-192.png
+  icon: https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/v0.0.5-alpha/frontend/public/pwa-192.png
   categories:
     - Lifestyle
 entrances:
@@ -15,11 +15,11 @@ entrances:
     host: pantryos
     port: 8000
     title: PantryOS
-    icon: https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/v0.0.2-alpha/frontend/public/pwa-192.png
+    icon: https://raw.githubusercontent.com/Wildstone-Systems/wildstone-pantry/v0.0.5-alpha/frontend/public/pwa-192.png
     authLevel: private
     openMethod: window
 spec:
-  versionName: '0.0.2-alpha'
+  versionName: '0.0.5-alpha'
   fullDescription: Track food inventory, plan meals, and maintain a shared household shopping list.
   developer: Wildstone Systems
   submitter: Wildstone Systems

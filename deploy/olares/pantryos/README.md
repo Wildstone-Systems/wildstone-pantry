@@ -1,6 +1,6 @@
 # PantryOS on Olares
 
-This local test package uses PantryOS 0.0.2-alpha, pinned to the digest in
+This local test package uses PantryOS 0.0.5-alpha, pinned to the digest in
 its GitHub release manifest. It requires Olares 1.12.6 or newer and installs
 one shared PantryOS instance with a private Olares entrance and an
 Olares-managed PostgreSQL database.
@@ -11,7 +11,7 @@ Olares-managed PostgreSQL database.
    before installing. From the node, an example using its container runtime is:
 
    ```sh
-   sudo crictl pull ghcr.io/wildstone-systems/pantryos@sha256:d0821967c1cbc605b9a0388cfe6314e30c76a1ef33f7f5a3b677dd8bd75de87f
+   sudo crictl pull ghcr.io/wildstone-systems/pantryos@sha256:14d6acd15276fa9ede9e7ae577af05e73ef252a51a91af8886b854bef49131f8
    ```
 
    If the registry denies the pull, check the GHCR package visibility and
@@ -30,7 +30,7 @@ Olares-managed PostgreSQL database.
    when prompted for `CONFIG_SECRET_KEY`.
 
    ```sh
-   olares-cli market upload ./pantryos-0.1.2.tgz
+   olares-cli market upload ./pantryos-0.1.3.tgz
    ```
 
 4. Open the private PantryOS entrance immediately after install. The
